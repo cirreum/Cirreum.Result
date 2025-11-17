@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<AssemblyName>Cirreum.Result</AssemblyName>
+		<RootNamespace>Cirreum</RootNamespace>
+		<Description>High-performance, struct-based Result monad for railway-oriented programming in C#. Features comprehensive async support (ValueTask + Task), validation (Ensure), inspection (Inspect), and complete monad operations (Map, Then, Match).</Description>
+		<PackageTags>result;monad;railway;functional;either;option;valuetask;async;csharp</PackageTags>
+		<IsAotCompatible>true</IsAotCompatible>
+	</PropertyGroup>
+
+	<!-- InternalsVisibleTo: Local Development Only -->
+	<ItemGroup Label="InternalsVisibleTo" Condition="'$(IsLocalBuild)' == 'true'">
+		<InternalsVisibleTo Include="Cirreum.ResultMondad.Tests" />
+	</ItemGroup>
+	
+
+</Project>
