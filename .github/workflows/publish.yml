@@ -36,15 +36,15 @@ jobs:
       run: echo "Building version ${{ steps.get_version.outputs.VERSION }}"
     
     - name: Restore dependencies
-      run: dotnet restore Cirreum.Core.slnx
+      run: dotnet restore Cirreum.Result.slnx
       working-directory: ./src
     
     - name: Build
-      run: dotnet build Cirreum.Core.slnx --configuration Release --no-restore -p:Version=${{ steps.get_version.outputs.VERSION }}
+      run: dotnet build Cirreum.Result.slnx --configuration Release --no-restore -p:Version=${{ steps.get_version.outputs.VERSION }}
       working-directory: ./src
     
     - name: Pack
-      run: dotnet pack Cirreum.Core.slnx --configuration Release --no-build -p:Version=${{ steps.get_version.outputs.VERSION }} -p:PackageVersion=${{ steps.get_version.outputs.VERSION }} --output ../artifacts
+      run: dotnet pack Cirreum.Result.slnx --configuration Release --no-build -p:Version=${{ steps.get_version.outputs.VERSION }} -p:PackageVersion=${{ steps.get_version.outputs.VERSION }} --output ../artifacts
       working-directory: ./src
     
     - name: NuGet login (OIDC -> temp API key)
