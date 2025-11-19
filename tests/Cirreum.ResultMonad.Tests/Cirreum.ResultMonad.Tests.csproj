@@ -1,34 +1,24 @@
-﻿<Project Sdk="MSTest.Sdk/4.0.1">
+﻿<Project Sdk="MSTest.Sdk">
+	<!--
+Alternatively, if you don't want to use the `global.json` file for versions, you can specify the version of the MSTest.Sdk package here.
+<Project Sdk="MSTest.Sdk/<version>">
+-->
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
-		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<UseVSTest>true</UseVSTest>
+		<IsPackable>false</IsPackable>
 	</PropertyGroup>
 
+	<!-- By default, MSTest Sdk uses MSTest runner -->
 	<ItemGroup>
-		<PackageReference Include="coverlet.collector" Version="6.0.4" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
-		<PackageReference Include="Moq" Version="4.20.72" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\Cirreum.Result\Cirreum.Result.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Update="Microsoft.NET.Test.Sdk" Version="18.0.1" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Update="MSTest.TestAdapter" Version="4.0.2" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Update="MSTest.TestFramework" Version="4.0.2" />
 	</ItemGroup>
 
 </Project>
