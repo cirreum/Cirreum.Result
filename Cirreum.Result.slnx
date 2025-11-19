@@ -16,6 +16,8 @@
     <Project Path="src/Cirreum.Result/Cirreum.Result.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <File Path="tests/Directory.Build.props" />
+    <File Path="tests/test.runsettings" />
     <Project Path="tests/Cirreum.ResultMonad.Tests/Cirreum.ResultMonad.Tests.csproj" />
   </Folder>
   <Folder Name="/_solution items/">
