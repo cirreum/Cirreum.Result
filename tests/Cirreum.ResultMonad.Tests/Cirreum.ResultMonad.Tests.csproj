@@ -13,8 +13,8 @@ Alternatively, if you don't want to use the `global.json` file for versions, you
 
 	<!-- By default, MSTest Sdk uses MSTest runner -->
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.1" />
 	</ItemGroup>
 
 	<ItemGroup>
