@@ -19,12 +19,28 @@ public readonly struct Result : IResult, IEquatable<Result> {
 	public static Task<Result> SuccessTask { get; } = Task.FromResult(Success);
 
 	/// <summary>
+	/// Creates a successful result with the specified value.
+	/// </summary>
+	/// <typeparam name="T">The type of the value.</typeparam>
+	/// <param name="value">The value to wrap in a successful result.</param>
+	/// <returns>A successful <see cref="Result{T}"/> containing the specified value.</returns>
+	public static Result<T> From<T>(T value) => Result<T>.Success(value);
+
+	/// <summary>
 	/// Creates a failed result with the specified error.
 	/// </summary>
 	public static Result Fail(Exception error) {
 		ArgumentNullException.ThrowIfNull(error);
 		return new(false, error);
 	}
+
+	/// <summary>
+	/// Creates a failed result with the specified error.
+	/// </summary>
+	/// <typeparam name="T">The type of the value the result would contain if successful.</typeparam>
+	/// <param name="error">The exception representing the failure.</param>
+	/// <returns>A failed <see cref="Result{T}"/> containing the specified error.</returns>
+	public static Result<T> Fail<T>(Exception error) => Result<T>.Fail(error);
 
 	private readonly bool _isSuccess;
 	private readonly Exception? _error;
@@ -234,6 +250,27 @@ public readonly struct Result : IResult, IEquatable<Result> {
 			return next();
 		} catch (Exception ex) {
 			return Fail(ex);
+		}
+	}
+
+	/// <summary>
+	/// Chains another operation that returns a Result with a value if the current result is successful.
+	/// </summary>
+	/// <typeparam name="T">The type of the value in the chained result.</typeparam>
+	/// <param name="next">The function that returns the next result operation.</param>
+	/// <returns>The result of the chained operation if successful, or the original failure.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="next"/> is null.</exception>
+	public Result<T> Then<T>(Func<Result<T>> next) {
+		ArgumentNullException.ThrowIfNull(next);
+
+		if (!this.IsSuccess) {
+			return Result<T>.Fail(this.Error);
+		}
+
+		try {
+			return next();
+		} catch (Exception ex) {
+			return Result<T>.Fail(ex);
 		}
 	}
 

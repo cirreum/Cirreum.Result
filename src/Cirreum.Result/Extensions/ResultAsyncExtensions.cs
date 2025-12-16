@@ -1154,6 +1154,23 @@ public static class ResultAsyncExtensions {
 	}
 
 	/// <summary>
+	/// Chains a synchronous operation that returns a Result if the current async result is successful.
+	/// </summary>
+	/// <typeparam name="T">The type of the value in the current result.</typeparam>
+	/// <typeparam name="TResult">The type of the value in the chained result.</typeparam>
+	/// <param name="resultTask">The task containing the result.</param>
+	/// <param name="selector">The function that returns the next result operation.</param>
+	/// <returns>A task that represents the asynchronous operation, containing the result of the chained operation if successful, or the original failure.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="selector"/> is null.</exception>
+	public static async ValueTask<Result<TResult>> ThenAsync<T, TResult>(
+		this ValueTask<Result<T>> resultTask,
+		Func<T, Result<TResult>> selector) {
+		ArgumentNullException.ThrowIfNull(selector);
+		var result = await resultTask.ConfigureAwait(false);
+		return result.Then(selector);
+	}
+
+	/// <summary>
 	/// Chains an asynchronous operation to execute if the preceding task completes successfully, propagating failure
 	/// otherwise.
 	/// </summary>
@@ -1213,6 +1230,23 @@ public static class ResultAsyncExtensions {
 		} catch (Exception ex) {
 			return Result<TResult>.Fail(ex);
 		}
+	}
+
+	/// <summary>
+	/// Chains a synchronous operation that returns a Result if the current async result is successful.
+	/// </summary>
+	/// <typeparam name="T">The type of the value contained in the initial result.</typeparam>
+	/// <typeparam name="TResult">The type of the value produced by the selector function.</typeparam>
+	/// <param name="resultTask">A task that represents the initial asynchronous operation.</param>
+	/// <param name="selector">A synchronous function to invoke if the initial result is successful.</param>
+	/// <returns>A task that represents the asynchronous operation, containing the result of the chained operation if successful, or the original failure.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="selector"/> is null.</exception>
+	public static async Task<Result<TResult>> ThenAsyncTask<T, TResult>(
+		this Task<Result<T>> resultTask,
+		Func<T, Result<TResult>> selector) {
+		ArgumentNullException.ThrowIfNull(selector);
+		var result = await resultTask.ConfigureAwait(false);
+		return result.Then(selector);
 	}
 
 

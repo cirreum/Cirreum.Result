@@ -383,13 +383,35 @@ public readonly struct Result<T> : IResult<T>, IEquatable<Result<T>> {
 		ArgumentNullException.ThrowIfNull(selector);
 
 		if (!this.IsSuccess) {
-			return Result<TResult>.Fail(this.Error!);
+			return Result<TResult>.Fail(this.Error);
 		}
 
 		try {
-			return selector(this.Value!);
+			return selector(this.Value);
 		} catch (Exception ex) {
 			return Result<TResult>.Fail(ex);
+		}
+
+	}
+
+	/// <summary>
+	/// Chains another operation that returns a non-generic Result if the current result is successful.
+	/// This discards the current value and returns a void Result.
+	/// </summary>
+	/// <param name="selector">The function that returns the next result operation.</param>
+	/// <returns>The result of the chained operation if successful, or the original failure.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="selector"/> is null.</exception>
+	public Result Then(Func<T, Result> selector) {
+		ArgumentNullException.ThrowIfNull(selector);
+
+		if (!this.IsSuccess) {
+			return Result.Fail(this.Error);
+		}
+
+		try {
+			return selector(this.Value);
+		} catch (Exception ex) {
+			return Result.Fail(ex);
 		}
 
 	}
