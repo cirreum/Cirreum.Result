@@ -247,4 +247,32 @@ public class ResultOfTTests {
 		Assert.AreSame(ex, chained.Error);
 		Assert.IsFalse(selectorCalled, "Chained selector should not run when initial result is failure.");
 	}
+
+	[TestMethod]
+	public void ToResult_WhenSuccessful_ReturnsSuccessResult() {
+		// Arrange
+		var result = Result<int>.Success(42);
+
+		// Act
+		var nonGenericResult = result.ToResult();
+
+		// Assert
+		Assert.IsTrue(nonGenericResult.IsSuccess);
+		Assert.IsNull(nonGenericResult.Error);
+	}
+
+	[TestMethod]
+	public void ToResult_WhenFailed_ReturnsFailedResultWithSameError() {
+		// Arrange
+		var ex = new InvalidOperationException("test error");
+		var result = Result<int>.Fail(ex);
+
+		// Act
+		var nonGenericResult = result.ToResult();
+
+		// Assert
+		Assert.IsFalse(nonGenericResult.IsSuccess);
+		Assert.IsNotNull(nonGenericResult.Error);
+		Assert.AreSame(ex, nonGenericResult.Error);
+	}
 }

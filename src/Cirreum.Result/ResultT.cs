@@ -395,6 +395,18 @@ public readonly struct Result<T> : IResult<T>, IEquatable<Result<T>> {
 	}
 
 	/// <summary>
+	/// Converts this generic <see cref="Result{T}"/> to a non-generic <see cref="Result"/>,
+	/// discarding the success value while preserving the success/failure state.
+	/// </summary>
+	/// <returns>A non-generic <see cref="Result"/> with the same success/failure state.</returns>
+	/// <remarks>
+	/// This is useful when you have a <see cref="Result{T}"/> but only care about
+	/// whether the operation succeeded, not the actual value.
+	/// </remarks>
+	public Result ToResult() =>
+		this.IsSuccess ? Result.Success : Result.Fail(this.Error!);
+
+	/// <summary>
 	/// Chains another operation that returns a non-generic Result if the current result is successful.
 	/// This discards the current value and returns a void Result.
 	/// </summary>

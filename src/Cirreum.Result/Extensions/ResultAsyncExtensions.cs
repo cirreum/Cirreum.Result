@@ -1250,6 +1250,268 @@ public static class ResultAsyncExtensions {
 	}
 
 
+	// ========== TO RESULT ASYNC (Unwrap) ==========
+	// ===============================================
+
+	/// <summary>
+	/// Converts a <see cref="ValueTask{TResult}"/> containing a generic <see cref="Result{T}"/>
+	/// to a <see cref="ValueTask{TResult}"/> containing a non-generic <see cref="Result"/>,
+	/// effectively discarding the success value while preserving the success/failure state.
+	/// </summary>
+	/// <typeparam name="T">The type of the value in the original result.</typeparam>
+	/// <param name="resultTask">The task containing the generic result to convert.</param>
+	/// <returns>A task containing a non-generic result with the same success/failure state.</returns>
+	public static async ValueTask<Result> ToResultAsync<T>(this ValueTask<Result<T>> resultTask) {
+		var result = await resultTask.ConfigureAwait(false);
+		return result.IsSuccess ? Result.Success : Result.Fail(result.Error!);
+	}
+
+	/// <summary>
+	/// Converts a <see cref="Task{TResult}"/> containing a generic <see cref="Result{T}"/>
+	/// to a <see cref="Task{TResult}"/> containing a non-generic <see cref="Result"/>,
+	/// effectively discarding the success value while preserving the success/failure state.
+	/// </summary>
+	/// <typeparam name="T">The type of the value in the original result.</typeparam>
+	/// <param name="resultTask">The task containing the generic result to convert.</param>
+	/// <returns>A task containing a non-generic result with the same success/failure state.</returns>
+	public static async Task<Result> ToResultAsyncTask<T>(this Task<Result<T>> resultTask) {
+		var result = await resultTask.ConfigureAwait(false);
+		return result.IsSuccess ? Result.Success : Result.Fail(result.Error!);
+	}
+
+
+	// ======= THEN ASYNC: Result<T> → Result ======
+	// ==============================================
+
+	/// <summary>
+	/// Chains an asynchronous operation that returns a non-generic <see cref="Result"/>
+	/// if the current generic result is successful, effectively dropping the value.
+	/// </summary>
+	/// <typeparam name="T">The type of the value in the current result.</typeparam>
+	/// <param name="resultTask">The task containing the generic result.</param>
+	/// <param name="selector">The function that returns the next async result operation.</param>
+	/// <returns>A task containing the non-generic result of the chained operation if successful,
+	/// or a failed result propagating the original error.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="selector"/> is null.</exception>
+	public static async ValueTask<Result> ThenAsync<T>(
+		this ValueTask<Result<T>> resultTask,
+		Func<T, ValueTask<Result>> selector) {
+
+		ArgumentNullException.ThrowIfNull(selector);
+		var result = await resultTask.ConfigureAwait(false);
+
+		if (!result.IsSuccess) {
+			return Result.Fail(result.Error!);
+		}
+
+		try {
+			return await selector(result.Value!).ConfigureAwait(false);
+		} catch (Exception ex) {
+			return Result.Fail(ex);
+		}
+	}
+
+	/// <summary>
+	/// Chains an asynchronous operation that returns a non-generic <see cref="Result"/>
+	/// if the current generic result is successful, effectively dropping the value.
+	/// </summary>
+	/// <typeparam name="T">The type of the value in the current result.</typeparam>
+	/// <param name="resultTask">The task containing the generic result.</param>
+	/// <param name="selector">The function that returns the next async result operation.</param>
+	/// <returns>A task containing the non-generic result of the chained operation if successful,
+	/// or a failed result propagating the original error.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="selector"/> is null.</exception>
+	public static async Task<Result> ThenAsyncTask<T>(
+		this Task<Result<T>> resultTask,
+		Func<T, Task<Result>> selector) {
+
+		ArgumentNullException.ThrowIfNull(selector);
+		var result = await resultTask.ConfigureAwait(false);
+
+		if (!result.IsSuccess) {
+			return Result.Fail(result.Error!);
+		}
+
+		try {
+			return await selector(result.Value!).ConfigureAwait(false);
+		} catch (Exception ex) {
+			return Result.Fail(ex);
+		}
+	}
+
+	/// <summary>
+	/// Chains a synchronous operation that returns a non-generic <see cref="Result"/>
+	/// if the current async generic result is successful.
+	/// </summary>
+	/// <typeparam name="T">The type of the value in the current result.</typeparam>
+	/// <param name="resultTask">The task containing the generic result.</param>
+	/// <param name="selector">The function that returns the next result operation.</param>
+	/// <returns>A task containing the non-generic result of the chained operation if successful,
+	/// or a failed result propagating the original error.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="selector"/> is null.</exception>
+	public static async ValueTask<Result> ThenAsync<T>(
+		this ValueTask<Result<T>> resultTask,
+		Func<T, Result> selector) {
+
+		ArgumentNullException.ThrowIfNull(selector);
+		var result = await resultTask.ConfigureAwait(false);
+
+		if (!result.IsSuccess) {
+			return Result.Fail(result.Error!);
+		}
+
+		try {
+			return selector(result.Value!);
+		} catch (Exception ex) {
+			return Result.Fail(ex);
+		}
+	}
+
+	/// <summary>
+	/// Chains a synchronous operation that returns a non-generic <see cref="Result"/>
+	/// if the current async generic result is successful.
+	/// </summary>
+	/// <typeparam name="T">The type of the value in the current result.</typeparam>
+	/// <param name="resultTask">The task containing the generic result.</param>
+	/// <param name="selector">The function that returns the next result operation.</param>
+	/// <returns>A task containing the non-generic result of the chained operation if successful,
+	/// or a failed result propagating the original error.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="selector"/> is null.</exception>
+	public static async Task<Result> ThenAsyncTask<T>(
+		this Task<Result<T>> resultTask,
+		Func<T, Result> selector) {
+
+		ArgumentNullException.ThrowIfNull(selector);
+		var result = await resultTask.ConfigureAwait(false);
+
+		if (!result.IsSuccess) {
+			return Result.Fail(result.Error!);
+		}
+
+		try {
+			return selector(result.Value!);
+		} catch (Exception ex) {
+			return Result.Fail(ex);
+		}
+	}
+
+
+	// ======= THEN ASYNC: Result → Result<T> ======
+	// ==============================================
+
+	/// <summary>
+	/// Chains an asynchronous operation that returns a generic <see cref="Result{T}"/>
+	/// if the current non-generic result is successful.
+	/// </summary>
+	/// <typeparam name="TResult">The type of the value in the resulting result.</typeparam>
+	/// <param name="resultTask">The task containing the non-generic result.</param>
+	/// <param name="selector">The function that returns the next async result operation.</param>
+	/// <returns>A task containing the generic result of the chained operation if successful,
+	/// or a failed result propagating the original error.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="selector"/> is null.</exception>
+	public static async ValueTask<Result<TResult>> ThenAsync<TResult>(
+		this ValueTask<Result> resultTask,
+		Func<ValueTask<Result<TResult>>> selector) {
+
+		ArgumentNullException.ThrowIfNull(selector);
+		var result = await resultTask.ConfigureAwait(false);
+
+		if (!result.IsSuccess) {
+			return Result<TResult>.Fail(result.Error!);
+		}
+
+		try {
+			return await selector().ConfigureAwait(false);
+		} catch (Exception ex) {
+			return Result<TResult>.Fail(ex);
+		}
+	}
+
+	/// <summary>
+	/// Chains an asynchronous operation that returns a generic <see cref="Result{T}"/>
+	/// if the current non-generic result is successful.
+	/// </summary>
+	/// <typeparam name="TResult">The type of the value in the resulting result.</typeparam>
+	/// <param name="resultTask">The task containing the non-generic result.</param>
+	/// <param name="selector">The function that returns the next async result operation.</param>
+	/// <returns>A task containing the generic result of the chained operation if successful,
+	/// or a failed result propagating the original error.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="selector"/> is null.</exception>
+	public static async Task<Result<TResult>> ThenAsyncTask<TResult>(
+		this Task<Result> resultTask,
+		Func<Task<Result<TResult>>> selector) {
+
+		ArgumentNullException.ThrowIfNull(selector);
+		var result = await resultTask.ConfigureAwait(false);
+
+		if (!result.IsSuccess) {
+			return Result<TResult>.Fail(result.Error!);
+		}
+
+		try {
+			return await selector().ConfigureAwait(false);
+		} catch (Exception ex) {
+			return Result<TResult>.Fail(ex);
+		}
+	}
+
+	/// <summary>
+	/// Chains a synchronous operation that returns a generic <see cref="Result{T}"/>
+	/// if the current async non-generic result is successful.
+	/// </summary>
+	/// <typeparam name="TResult">The type of the value in the resulting result.</typeparam>
+	/// <param name="resultTask">The task containing the non-generic result.</param>
+	/// <param name="selector">The function that returns the next result operation.</param>
+	/// <returns>A task containing the generic result of the chained operation if successful,
+	/// or a failed result propagating the original error.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="selector"/> is null.</exception>
+	public static async ValueTask<Result<TResult>> ThenAsync<TResult>(
+		this ValueTask<Result> resultTask,
+		Func<Result<TResult>> selector) {
+
+		ArgumentNullException.ThrowIfNull(selector);
+		var result = await resultTask.ConfigureAwait(false);
+
+		if (!result.IsSuccess) {
+			return Result<TResult>.Fail(result.Error!);
+		}
+
+		try {
+			return selector();
+		} catch (Exception ex) {
+			return Result<TResult>.Fail(ex);
+		}
+	}
+
+	/// <summary>
+	/// Chains a synchronous operation that returns a generic <see cref="Result{T}"/>
+	/// if the current async non-generic result is successful.
+	/// </summary>
+	/// <typeparam name="TResult">The type of the value in the resulting result.</typeparam>
+	/// <param name="resultTask">The task containing the non-generic result.</param>
+	/// <param name="selector">The function that returns the next result operation.</param>
+	/// <returns>A task containing the generic result of the chained operation if successful,
+	/// or a failed result propagating the original error.</returns>
+	/// <exception cref="ArgumentNullException">Thrown when <paramref name="selector"/> is null.</exception>
+	public static async Task<Result<TResult>> ThenAsyncTask<TResult>(
+		this Task<Result> resultTask,
+		Func<Result<TResult>> selector) {
+
+		ArgumentNullException.ThrowIfNull(selector);
+		var result = await resultTask.ConfigureAwait(false);
+
+		if (!result.IsSuccess) {
+			return Result<TResult>.Fail(result.Error!);
+		}
+
+		try {
+			return selector();
+		} catch (Exception ex) {
+			return Result<TResult>.Fail(ex);
+		}
+	}
+
+
 	// =============== WHERE ASYNC ===============
 	// ===========================================
 
@@ -1486,7 +1748,11 @@ public static class ResultAsyncExtensions {
 	/// <typeparamref name="TOut"/> by invoking the appropriate asynchronous
 	/// function for the success or failure case.
 	/// </summary>
-	public static async Task<TOut> MatchAsync<TOut>(
+	/// <remarks>
+	/// This overload returns <see cref="ValueTask{TOut}"/> for optimal performance
+	/// in ValueTask-based pipelines, avoiding unnecessary Task boxing.
+	/// </remarks>
+	public static async ValueTask<TOut> MatchAsync<TOut>(
 		this Result result,
 		Func<ValueTask<TOut>> onSuccess,
 		Func<Exception, ValueTask<TOut>> onFailure) {
@@ -1524,7 +1790,11 @@ public static class ResultAsyncExtensions {
 	/// <typeparamref name="TOut"/> by invoking the appropriate asynchronous
 	/// function for the success or failure case.
 	/// </summary>
-	public static async Task<TOut> MatchAsync<T, TOut>(
+	/// <remarks>
+	/// This overload returns <see cref="ValueTask{TOut}"/> for optimal performance
+	/// in ValueTask-based pipelines, avoiding unnecessary Task boxing.
+	/// </remarks>
+	public static async ValueTask<TOut> MatchAsync<T, TOut>(
 		this Result<T> result,
 		Func<T, ValueTask<TOut>> onSuccess,
 		Func<Exception, ValueTask<TOut>> onFailure) {
@@ -1549,6 +1819,94 @@ public static class ResultAsyncExtensions {
 		Func<Exception, Task<TOut>> onFailure) {
 		ArgumentNullException.ThrowIfNull(onSuccess);
 		ArgumentNullException.ThrowIfNull(onFailure);
+
+		if (result.IsSuccess) {
+			return await onSuccess(result.Value).ConfigureAwait(false);
+		}
+
+		return await onFailure(result.Error).ConfigureAwait(false);
+	}
+
+	/// <summary>
+	/// Asynchronously projects the result of a <see cref="ValueTask{Result}"/> into a value of type
+	/// <typeparamref name="TOut"/> by invoking the appropriate asynchronous function for the success or failure case.
+	/// </summary>
+	/// <remarks>
+	/// This overload awaits the result task first, then applies the match operation.
+	/// Returns <see cref="ValueTask{TOut}"/> for optimal performance in ValueTask-based pipelines.
+	/// </remarks>
+	public static async ValueTask<TOut> MatchAsync<TOut>(
+		this ValueTask<Result> resultTask,
+		Func<ValueTask<TOut>> onSuccess,
+		Func<Exception, ValueTask<TOut>> onFailure) {
+		ArgumentNullException.ThrowIfNull(onSuccess);
+		ArgumentNullException.ThrowIfNull(onFailure);
+
+		var result = await resultTask.ConfigureAwait(false);
+
+		if (result.IsSuccess) {
+			return await onSuccess().ConfigureAwait(false);
+		}
+
+		return await onFailure(result.Error).ConfigureAwait(false);
+	}
+
+	/// <summary>
+	/// Asynchronously projects the result of a <see cref="Task{Result}"/> into a value of type
+	/// <typeparamref name="TOut"/> by invoking the appropriate asynchronous function for the success or failure case.
+	/// </summary>
+	public static async Task<TOut> MatchAsyncTask<TOut>(
+		this Task<Result> resultTask,
+		Func<Task<TOut>> onSuccess,
+		Func<Exception, Task<TOut>> onFailure) {
+		ArgumentNullException.ThrowIfNull(onSuccess);
+		ArgumentNullException.ThrowIfNull(onFailure);
+
+		var result = await resultTask.ConfigureAwait(false);
+
+		if (result.IsSuccess) {
+			return await onSuccess().ConfigureAwait(false);
+		}
+
+		return await onFailure(result.Error).ConfigureAwait(false);
+	}
+
+	/// <summary>
+	/// Asynchronously projects the result of a ValueTask containing a generic Result into a value of type
+	/// <typeparamref name="TOut"/> by invoking the appropriate asynchronous function for the success or failure case.
+	/// </summary>
+	/// <remarks>
+	/// This overload awaits the result task first, then applies the match operation.
+	/// Returns <see cref="ValueTask{TOut}"/> for optimal performance in ValueTask-based pipelines.
+	/// </remarks>
+	public static async ValueTask<TOut> MatchAsync<T, TOut>(
+		this ValueTask<Result<T>> resultTask,
+		Func<T, ValueTask<TOut>> onSuccess,
+		Func<Exception, ValueTask<TOut>> onFailure) {
+		ArgumentNullException.ThrowIfNull(onSuccess);
+		ArgumentNullException.ThrowIfNull(onFailure);
+
+		var result = await resultTask.ConfigureAwait(false);
+
+		if (result.IsSuccess) {
+			return await onSuccess(result.Value).ConfigureAwait(false);
+		}
+
+		return await onFailure(result.Error).ConfigureAwait(false);
+	}
+
+	/// <summary>
+	/// Asynchronously projects the result of a Task containing a generic Result into a value of type
+	/// <typeparamref name="TOut"/> by invoking the appropriate asynchronous function for the success or failure case.
+	/// </summary>
+	public static async Task<TOut> MatchAsyncTask<T, TOut>(
+		this Task<Result<T>> resultTask,
+		Func<T, Task<TOut>> onSuccess,
+		Func<Exception, Task<TOut>> onFailure) {
+		ArgumentNullException.ThrowIfNull(onSuccess);
+		ArgumentNullException.ThrowIfNull(onFailure);
+
+		var result = await resultTask.ConfigureAwait(false);
 
 		if (result.IsSuccess) {
 			return await onSuccess(result.Value).ConfigureAwait(false);
