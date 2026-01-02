@@ -5,7 +5,11 @@
       "Bash(ls:*)",
       "Bash(dotnet test:*)",
       "Bash(dotnet run:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(dir /b /s \"C:\\Cirreum\\Infrastructure\\Cirreum.Persistence.Dapper\\src\\*.cs\")",
+      "Bash(dotnet restore:*)",
+      "Bash(dotnet clean:*)",
+      "Bash(dotnet list:*)"
     ],
     "deny": [],
     "ask": []

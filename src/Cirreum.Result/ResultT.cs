@@ -65,6 +65,7 @@ public readonly struct Result<T> : IResult<T>, IEquatable<Result<T>> {
 	/// Gets a value indicating whether the result represents a failure state.
 	/// </summary>
 	[MemberNotNullWhen(true, nameof(Error))]
+	[MemberNotNullWhen(false, nameof(Value))]
 	public bool IsFailure => !this._isSuccess;
 
 	/// <summary>
