@@ -224,59 +224,151 @@ public class GeneralTests {
 
 	#endregion
 
-	#region Where Tests
+	#region Ensure Tests
 
 	[TestMethod]
-	public void Where_WithTruePredicate_ShouldRemainSuccessful() {
+	public void Ensure_WithTruePredicate_ShouldRemainSuccessful() {
 		// Arrange
 		var result = Result<int>.Success(10);
 
 		// Act
-		var filtered = result.Where(x => x > 5, new("Value too small"));
+		var ensured = result.Ensure(x => x > 5, _ => new Exception("Value too small"));
 
 		// Assert
-		Assert.IsTrue(filtered.IsSuccess);
-		Assert.AreEqual(10, filtered.Value);
+		Assert.IsTrue(ensured.IsSuccess);
+		Assert.AreEqual(10, ensured.Value);
 	}
 
 	[TestMethod]
-	public void Where_WithFalsePredicate_ShouldBecomeFailure() {
+	public void Ensure_WithFalsePredicate_ShouldBecomeFailure() {
 		// Arrange
 		var result = Result<int>.Success(10);
 
 		// Act
-		var filtered = result.Where(x => x > 20, new("Value too small"));
+		var ensured = result.Ensure(x => x > 20, _ => new Exception("Value too small"));
 
 		// Assert
-		Assert.IsFalse(filtered.IsSuccess);
-		Assert.IsNotNull(filtered.Error); // Added null check assertion
-		Assert.AreEqual("Value too small", filtered.Error.Message);
+		Assert.IsFalse(ensured.IsSuccess);
+		Assert.IsNotNull(ensured.Error);
+		Assert.AreEqual("Value too small", ensured.Error.Message);
 	}
 
 	[TestMethod]
-	public void Where_OnAlreadyFailedResult_ShouldPreserveOriginalError() {
+	public void Ensure_OnAlreadyFailedResult_ShouldPreserveOriginalError() {
 		// Arrange
-		var result = Result<int>.Fail(new("original error"));
+		var result = Result<int>.Fail(new Exception("original error"));
 
 		// Act
-		var filtered = result.Where(x => true, new("new error"));
+		var ensured = result.Ensure(x => true, _ => new Exception("new error"));
 
 		// Assert
-		Assert.IsFalse(filtered.IsSuccess);
-		Assert.IsNotNull(filtered.Error); // Added null check assertion
-		Assert.AreEqual("original error", filtered.Error.Message);
+		Assert.IsFalse(ensured.IsSuccess);
+		Assert.IsNotNull(ensured.Error);
+		Assert.AreEqual("original error", ensured.Error.Message);
 	}
 
 	[TestMethod]
-	public void Where_WithNullPredicate_ShouldThrow() {
+	public void Ensure_WithNullPredicate_ShouldThrow() {
 		// Arrange
 		var result = Result<int>.Success(10);
 
 		// Act & Assert
-		var exception = Assert.ThrowsExactly<ArgumentNullException>(() => result.Where(null!, new("new error")));
+		var exception = Assert.ThrowsExactly<ArgumentNullException>(() =>
+			result.Ensure(null!, _ => new Exception("error")));
 
-		// Verify it's the correct parameter
 		Assert.AreEqual("predicate", exception.ParamName);
+	}
+
+	[TestMethod]
+	public void Ensure_WithNullErrorFactory_ShouldThrow() {
+		// Arrange
+		var result = Result<int>.Success(10);
+
+		// Act & Assert
+		var exception = Assert.ThrowsExactly<ArgumentNullException>(() =>
+			result.Ensure(x => x > 5, (Func<int, Exception>)null!));
+
+		Assert.AreEqual("errorFactory", exception.ParamName);
+	}
+
+	[TestMethod]
+	public void Ensure_WithStringOverload_WithTruePredicate_ShouldRemainSuccessful() {
+		// Arrange
+		var result = Result<int>.Success(10);
+
+		// Act
+		var ensured = result.Ensure(x => x > 5, "Value too small");
+
+		// Assert
+		Assert.IsTrue(ensured.IsSuccess);
+		Assert.AreEqual(10, ensured.Value);
+	}
+
+	[TestMethod]
+	public void Ensure_WithStringOverload_WithFalsePredicate_ShouldBecomeFailure() {
+		// Arrange
+		var result = Result<int>.Success(10);
+
+		// Act
+		var ensured = result.Ensure(x => x > 20, "Value too small");
+
+		// Assert
+		Assert.IsFalse(ensured.IsSuccess);
+		Assert.IsNotNull(ensured.Error);
+		Assert.IsInstanceOfType<InvalidOperationException>(ensured.Error);
+		Assert.AreEqual("Value too small", ensured.Error.Message);
+	}
+
+	[TestMethod]
+	public void Ensure_WhenPredicateThrows_ShouldBecomeFailure() {
+		// Arrange
+		var result = Result<int>.Success(10);
+
+		// Act
+		var ensured = result.Ensure(
+			x => throw new InvalidOperationException("predicate threw"),
+			_ => new Exception("should not be used"));
+
+		// Assert
+		Assert.IsFalse(ensured.IsSuccess);
+		Assert.IsNotNull(ensured.Error);
+		Assert.AreEqual("predicate threw", ensured.Error.Message);
+	}
+
+	[TestMethod]
+	public void Ensure_CanChainMultipleValidations() {
+		// Arrange
+		var result = Result<int>.Success(10);
+
+		// Act
+		var ensured = result
+			.Ensure(x => x > 0, "Must be positive")
+			.Ensure(x => x < 100, "Must be less than 100")
+			.Ensure(x => x % 2 == 0, "Must be even");
+
+		// Assert
+		Assert.IsTrue(ensured.IsSuccess);
+		Assert.AreEqual(10, ensured.Value);
+	}
+
+	[TestMethod]
+	public void Ensure_ChainedValidations_FailsOnFirstFailure() {
+		// Arrange
+		var result = Result<int>.Success(10);
+		var secondPredicateCalled = false;
+
+		// Act
+		var ensured = result
+			.Ensure(x => x > 100, "Must be greater than 100")
+			.Ensure(x => {
+				secondPredicateCalled = true;
+				return true;
+			}, "Should not reach here");
+
+		// Assert
+		Assert.IsFalse(ensured.IsSuccess);
+		Assert.AreEqual("Must be greater than 100", ensured.Error!.Message);
+		Assert.IsFalse(secondPredicateCalled);
 	}
 
 	#endregion

@@ -6,7 +6,7 @@
 
 ## Overview
 
-A lightweight, allocation‑free, struct‑based `Result` monad designed for high‑performance .NET applications.  
+A lightweight, allocation‑free, struct‑based `Result` and `Optional` monad library designed for high‑performance .NET applications.
 Provides a complete toolkit for functional, exception‑free control flow with **full async support**, **validation**, **inspection**, and **monadic composition**.
 
 ---
@@ -15,12 +15,13 @@ Provides a complete toolkit for functional, exception‑free control flow with *
 
 - **Struct-based**: No heap allocations on the success path.
 - **Unified Success/Failure Model** using `Result` and `Result<T>`.
-- **Full async support**  
+- **Optional Values** with `Optional<T>` for explicit presence/absence modeling.
+- **Full async support**
   - `ValueTask` + `Task`
   - Async variants of `Map`, `Then`, `Ensure`, `Inspect`, failure handlers, etc.
 - **Validation pipeline** with `Ensure` (sync + async).
 - **Inspection helpers**: `Inspect`, `InspectTry`.
-- **Composable monad API**:  
+- **Composable monad API**:
   `Map`, `Then`, `Match`, `Switch`, `TryGetValue`, `TryGetError`, and more.
 - **Ergonomic extension methods** for async workflows.
 - **Zero exceptions for control flow**—exceptions are captured as failures.
@@ -78,6 +79,45 @@ var result =
         .Map(user => user.Id)
         .Then(LogCreation);
 ```
+
+---
+
+## 🎯 Optional Values
+
+Use `Optional<T>` when a value may be absent without implying an error:
+
+```csharp
+Optional<User> FindUser(int id)
+{
+    var user = _db.Users.Find(id);
+    return Optional.From(user);  // Returns Empty if null
+}
+
+// Chaining
+var displayName = FindUser(id)
+    .Map(u => u.DisplayName)
+    .GetValueOrDefault("Unknown");
+
+// Pattern matching
+FindUser(id).Switch(
+    onValue: user => Console.WriteLine($"Found: {user.Name}"),
+    onEmpty: () => Console.WriteLine("User not found"));
+
+// Convert to Result when absence is an error
+var result = FindUser(id)
+    .ToResult(new NotFoundException("User not found"));
+```
+
+### When to Use `Optional<T>` vs `Result<T>`
+
+| Use Case | Type |
+| -------- | ---- |
+| Operation that might fail with a reason | `Result<T>` |
+| Value that may or may not exist | `Optional<T>` |
+| Dictionary/cache lookup | `Optional<T>` |
+| Database query that might return null | `Optional<T>` |
+| Validation or business rule failure | `Result<T>` |
+| API call that might error | `Result<T>` |
 
 ---
 
@@ -148,8 +188,16 @@ All of the above, plus:
 - `Map<TOut>(...)`
 - `Ensure(...)` validation helpers
 
+### `Optional<T>`
+
+- `HasValue`, `Value`, `TryGetValue`
+- `From(T?)`, `Empty` factory methods
+- `Map`, `Then`, `Match`, `Switch`, `Where`
+- `GetValueOrDefault(T)`, `GetValueOrDefault(Func<T>)`
+- `ToResult(Exception)` for converting to `Result<T>`
+
 ### Async Extensions
-(From `ResultAsyncExtensions`)  
+(From `ResultAsyncExtensions`)
 Supports async versions of:
 
 - `OnSuccess`
@@ -205,10 +253,10 @@ Pull requests are welcome! If you have ideas for improvements—performance twea
 
 ## 🧭 Project Files
 
-- Core interfaces: `IResult`, `IResult<T>`  
-- Implementations: `Result`, `Result<T>`  
-- Async pipeline operators: `ResultAsyncExtensions`  
-- Monadic composition, validation, and inspection APIs  
+- Core interfaces: `IResult`, `IResult<T>`
+- Implementations: `Result`, `Result<T>`, `Optional<T>`
+- Async pipeline operators: `ResultAsyncExtensions`
+- Monadic composition, validation, and inspection APIs
 - Designed to support any .NET hosting model (Server, WASM, Azure Functions)
 
 ---

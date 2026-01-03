@@ -347,33 +347,6 @@ public readonly struct Result<T> : IResult<T>, IEquatable<Result<T>> {
 	}
 
 	/// <summary>
-	/// Filters the current result based on a specified condition.
-	/// </summary>
-	/// <param name="predicate">A function that defines the condition to evaluate the current value.
-	/// The function should return <see langword="true"/> to retain the value, or <see langword="false"/>
-	/// to fail the result.</param>
-	/// <param name="error">The <see cref="Exception"/> to associate with the result if the condition is not met.</param>
-	/// <returns>A <see cref="Result{T}"/> that contains the current value if the condition is met; otherwise, 
-	/// a failed result with the specified error message.</returns>
-	/// <exception cref="ArgumentNullException">Thrown when <paramref name="predicate"/> is null.</exception>
-	/// <exception cref="ArgumentException">Thrown when <paramref name="error"/> is null or whitespace.</exception>
-	public Result<T> Where(Func<T, bool> predicate, Exception error) {
-		ArgumentNullException.ThrowIfNull(predicate);
-		ArgumentNullException.ThrowIfNull(error);
-
-		if (!this.IsSuccess) {
-			return this;  // Already failed, return same instance
-		}
-
-		try {
-			return predicate(this.Value!) ? this : Fail(error);
-		} catch (Exception ex) {
-			return Fail(ex);  // Convert exception to failure
-		}
-
-	}
-
-	/// <summary>
 	/// Chains another operation that returns a Result if the current result is successful.
 	/// </summary>
 	/// <typeparam name="TResult">The type of the value in the chained result.</typeparam>

@@ -177,15 +177,15 @@ public sealed class ResultAsyncExtensionTests {
 
 	#endregion
 
-	#region WhereAsync Tests
+	#region EnsureAsync Tests
 
 	[TestMethod]
-	public async Task WhereAsync_WithTruePredicate_ShouldRemainSuccessful() {
+	public async Task EnsureAsync_WithTruePredicate_ShouldRemainSuccessful() {
 		// Arrange
 		var resultTask = new ValueTask<Result<int>>(Result<int>.Success(10));
 
 		// Act
-		var result = await resultTask.WhereAsync(x => x > 5, new("Value too small"));
+		var result = await resultTask.EnsureAsync(x => x > 5, _ => new Exception("Value too small"));
 
 		// Assert
 		Assert.IsTrue(result.IsSuccess);
@@ -193,12 +193,12 @@ public sealed class ResultAsyncExtensionTests {
 	}
 
 	[TestMethod]
-	public async Task WhereAsync_WithFalsePredicate_ShouldBecomeFailure() {
+	public async Task EnsureAsync_WithFalsePredicate_ShouldBecomeFailure() {
 		// Arrange
 		var resultTask = new ValueTask<Result<int>>(Result<int>.Success(3));
 
 		// Act
-		var result = await resultTask.WhereAsync(x => x > 5, new("Value too small"));
+		var result = await resultTask.EnsureAsync(x => x > 5, _ => new Exception("Value too small"));
 
 		// Assert
 		Assert.IsFalse(result.IsSuccess);
@@ -206,9 +206,222 @@ public sealed class ResultAsyncExtensionTests {
 		Assert.AreEqual("Value too small", result.Error.Message);
 	}
 
-	public TestContext TestContext { get; set; }
+	[TestMethod]
+	public async Task EnsureAsync_OnAlreadyFailedResult_ShouldPreserveOriginalError() {
+		// Arrange
+		var resultTask = new ValueTask<Result<int>>(Result<int>.Fail(new Exception("original error")));
+
+		// Act
+		var result = await resultTask.EnsureAsync(x => true, _ => new Exception("new error"));
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.AreEqual("original error", result.Error!.Message);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsync_WithStringOverload_WithTruePredicate_ShouldRemainSuccessful() {
+		// Arrange
+		var resultTask = new ValueTask<Result<int>>(Result<int>.Success(10));
+
+		// Act
+		var result = await resultTask.EnsureAsync(x => x > 5, "Value too small");
+
+		// Assert
+		Assert.IsTrue(result.IsSuccess);
+		Assert.AreEqual(10, result.Value);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsync_WithStringOverload_WithFalsePredicate_ShouldBecomeFailure() {
+		// Arrange
+		var resultTask = new ValueTask<Result<int>>(Result<int>.Success(3));
+
+		// Act
+		var result = await resultTask.EnsureAsync(x => x > 5, "Value too small");
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.IsInstanceOfType<InvalidOperationException>(result.Error);
+		Assert.AreEqual("Value too small", result.Error!.Message);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsyncTask_WithTruePredicate_ShouldRemainSuccessful() {
+		// Arrange
+		var resultTask = Task.FromResult(Result<int>.Success(10));
+
+		// Act
+		var result = await resultTask.EnsureAsyncTask(x => x > 5, _ => new Exception("Value too small"));
+
+		// Assert
+		Assert.IsTrue(result.IsSuccess);
+		Assert.AreEqual(10, result.Value);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsyncTask_WithFalsePredicate_ShouldBecomeFailure() {
+		// Arrange
+		var resultTask = Task.FromResult(Result<int>.Success(3));
+
+		// Act
+		var result = await resultTask.EnsureAsyncTask(x => x > 5, _ => new Exception("Value too small"));
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.IsNotNull(result.Error);
+		Assert.AreEqual("Value too small", result.Error.Message);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsync_WithAsyncPredicate_TruePredicate_ShouldRemainSuccessful() {
+		// Arrange
+		var resultTask = new ValueTask<Result<int>>(Result<int>.Success(10));
+
+		// Act
+		var result = await resultTask.EnsureAsync(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x > 5;
+			},
+			_ => new Exception("Value too small"));
+
+		// Assert
+		Assert.IsTrue(result.IsSuccess);
+		Assert.AreEqual(10, result.Value);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsync_WithAsyncPredicate_FalsePredicate_ShouldBecomeFailure() {
+		// Arrange
+		var resultTask = new ValueTask<Result<int>>(Result<int>.Success(3));
+
+		// Act
+		var result = await resultTask.EnsureAsync(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x > 5;
+			},
+			_ => new Exception("Value too small"));
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.AreEqual("Value too small", result.Error!.Message);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsyncTask_WithAsyncPredicate_TruePredicate_ShouldRemainSuccessful() {
+		// Arrange
+		var resultTask = Task.FromResult(Result<int>.Success(10));
+
+		// Act
+		var result = await resultTask.EnsureAsyncTask(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x > 5;
+			},
+			_ => new Exception("Value too small"));
+
+		// Assert
+		Assert.IsTrue(result.IsSuccess);
+		Assert.AreEqual(10, result.Value);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsyncTask_WithAsyncPredicate_FalsePredicate_ShouldBecomeFailure() {
+		// Arrange
+		var resultTask = Task.FromResult(Result<int>.Success(3));
+
+		// Act
+		var result = await resultTask.EnsureAsyncTask(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x > 5;
+			},
+			_ => new Exception("Value too small"));
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.AreEqual("Value too small", result.Error!.Message);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsync_WithAsyncPredicate_StringError_TruePredicate_ShouldRemainSuccessful() {
+		// Arrange
+		var resultTask = new ValueTask<Result<int>>(Result<int>.Success(10));
+
+		// Act
+		var result = await resultTask.EnsureAsync(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x > 5;
+			},
+			"Value too small");
+
+		// Assert
+		Assert.IsTrue(result.IsSuccess);
+		Assert.AreEqual(10, result.Value);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsync_WithAsyncPredicate_StringError_FalsePredicate_ShouldBecomeFailure() {
+		// Arrange
+		var resultTask = new ValueTask<Result<int>>(Result<int>.Success(3));
+
+		// Act
+		var result = await resultTask.EnsureAsync(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x > 5;
+			},
+			"Value too small");
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.IsInstanceOfType<InvalidOperationException>(result.Error);
+		Assert.AreEqual("Value too small", result.Error!.Message);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsyncTask_WithAsyncPredicate_StringError_TruePredicate_ShouldRemainSuccessful() {
+		// Arrange
+		var resultTask = Task.FromResult(Result<int>.Success(10));
+
+		// Act
+		var result = await resultTask.EnsureAsyncTask(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x > 5;
+			},
+			"Value too small");
+
+		// Assert
+		Assert.IsTrue(result.IsSuccess);
+		Assert.AreEqual(10, result.Value);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsyncTask_WithAsyncPredicate_StringError_FalsePredicate_ShouldBecomeFailure() {
+		// Arrange
+		var resultTask = Task.FromResult(Result<int>.Success(3));
+
+		// Act
+		var result = await resultTask.EnsureAsyncTask(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x > 5;
+			},
+			"Value too small");
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.IsInstanceOfType<InvalidOperationException>(result.Error);
+		Assert.AreEqual("Value too small", result.Error!.Message);
+	}
 
 	#endregion
+
+	public TestContext TestContext { get; set; }
 
 	#region ToResultAsync Tests
 
@@ -480,7 +693,7 @@ public sealed class ResultAsyncExtensionTests {
 		var result = Result.Success;
 
 		// Act
-		ValueTask<string> matchTask = result.MatchAsync(
+		var matchTask = result.MatchAsync(
 			async () => {
 				await Task.Delay(1, this.TestContext.CancellationToken);
 				return "success";
@@ -502,7 +715,7 @@ public sealed class ResultAsyncExtensionTests {
 		var result = Result.Fail(new Exception("test error"));
 
 		// Act
-		ValueTask<string> matchTask = result.MatchAsync(
+		var matchTask = result.MatchAsync(
 			async () => {
 				await Task.Delay(1, this.TestContext.CancellationToken);
 				return "success";
@@ -524,7 +737,7 @@ public sealed class ResultAsyncExtensionTests {
 		var result = Result<int>.Success(42);
 
 		// Act
-		ValueTask<string> matchTask = result.MatchAsync(
+		var matchTask = result.MatchAsync(
 			async x => {
 				await Task.Delay(1, this.TestContext.CancellationToken);
 				return $"value: {x}";
@@ -546,7 +759,7 @@ public sealed class ResultAsyncExtensionTests {
 		var result = Result<int>.Fail(new Exception("test error"));
 
 		// Act
-		ValueTask<string> matchTask = result.MatchAsync(
+		var matchTask = result.MatchAsync(
 			async x => {
 				await Task.Delay(1, this.TestContext.CancellationToken);
 				return $"value: {x}";
@@ -568,7 +781,7 @@ public sealed class ResultAsyncExtensionTests {
 		var resultTask = new ValueTask<Result>(Result.Success);
 
 		// Act
-		ValueTask<string> matchTask = resultTask.MatchAsync(
+		var matchTask = resultTask.MatchAsync(
 			async () => {
 				await Task.Delay(1, this.TestContext.CancellationToken);
 				return "success";
@@ -590,7 +803,7 @@ public sealed class ResultAsyncExtensionTests {
 		var resultTask = new ValueTask<Result<int>>(Result<int>.Success(42));
 
 		// Act
-		ValueTask<string> matchTask = resultTask.MatchAsync(
+		var matchTask = resultTask.MatchAsync(
 			async x => {
 				await Task.Delay(1, this.TestContext.CancellationToken);
 				return $"value: {x}";
@@ -612,7 +825,7 @@ public sealed class ResultAsyncExtensionTests {
 		var resultTask = Task.FromResult(Result.Success);
 
 		// Act
-		Task<string> matchTask = resultTask.MatchAsyncTask(
+		var matchTask = resultTask.MatchAsyncTask(
 			async () => {
 				await Task.Delay(1, this.TestContext.CancellationToken);
 				return "success";
@@ -634,7 +847,7 @@ public sealed class ResultAsyncExtensionTests {
 		var resultTask = Task.FromResult(Result<int>.Success(42));
 
 		// Act
-		Task<string> matchTask = resultTask.MatchAsyncTask(
+		var matchTask = resultTask.MatchAsyncTask(
 			async x => {
 				await Task.Delay(1, this.TestContext.CancellationToken);
 				return $"value: {x}";

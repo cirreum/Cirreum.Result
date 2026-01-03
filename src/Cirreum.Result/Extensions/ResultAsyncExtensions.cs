@@ -1512,115 +1512,6 @@ public static class ResultAsyncExtensions {
 	}
 
 
-	// =============== WHERE ASYNC ===============
-	// ===========================================
-
-	/// <summary>
-	/// Filters the result based on a specified condition.
-	/// </summary>
-	/// <typeparam name="T">The type of the value in the result.</typeparam>
-	/// <param name="resultTask">The task containing the result.</param>
-	/// <param name="predicate">The condition to evaluate.</param>
-	/// <param name="error">The error message if the condition is not met.</param>
-	/// <returns>A task that represents the asynchronous operation, containing the filtered result.</returns>
-	/// <exception cref="ArgumentNullException">Thrown when <paramref name="predicate"/> is null.</exception>
-	/// <exception cref="ArgumentException">Thrown when <paramref name="error"/> is null or whitespace.</exception>
-	public static async ValueTask<Result<T>> WhereAsync<T>(
-		this ValueTask<Result<T>> resultTask,
-		Func<T, bool> predicate,
-		Exception error) {
-		ArgumentNullException.ThrowIfNull(predicate);
-		ArgumentNullException.ThrowIfNull(error);
-
-		var result = await resultTask.ConfigureAwait(false);
-		return result.Where(predicate, error);
-	}
-
-	/// <summary>
-	/// Filters the result based on an asynchronous condition.
-	/// </summary>
-	public static async ValueTask<Result<T>> WhereAsync<T>(
-		this ValueTask<Result<T>> resultTask,
-		Func<T, ValueTask<bool>> predicate,
-		Exception error) {
-		ArgumentNullException.ThrowIfNull(predicate);
-		ArgumentNullException.ThrowIfNull(error);
-
-		var result = await resultTask.ConfigureAwait(false);
-
-		if (!result.IsSuccess) {
-			return result;
-		}
-
-		try {
-			var passes = await predicate(result.Value!).ConfigureAwait(false);
-			return passes ? result : Result<T>.Fail(error);
-		} catch (Exception ex) {
-			return Result<T>.Fail(ex);
-		}
-
-	}
-
-	/// <summary>
-	/// Asynchronously evaluates a predicate against the value of a completed result and returns a failed result with a
-	/// specified error message if the predicate is not satisfied.
-	/// </summary>
-	/// <typeparam name="T">The type of the value contained in the result.</typeparam>
-	/// <param name="resultTask">A task that represents the asynchronous operation returning a result to be evaluated.</param>
-	/// <param name="predicate">The function that defines the condition to evaluate against the result's value. Must not be null.</param>
-	/// <param name="error">The error message to associate with the result if the predicate is not satisfied. Cannot be null or whitespace.</param>
-	/// <returns>A task that represents the asynchronous operation. The task result contains a successful result if the predicate is
-	/// satisfied; otherwise, a failed result with the specified error message.</returns>
-	/// <exception cref="ArgumentException">Thrown if errorMessage is null or consists only of white-space characters.</exception>
-	public static async Task<Result<T>> WhereAsyncTask<T>(
-		this Task<Result<T>> resultTask,
-		Func<T, bool> predicate,
-		Exception error) {
-		ArgumentNullException.ThrowIfNull(predicate);
-		ArgumentNullException.ThrowIfNull(error);
-
-		var result = await resultTask.ConfigureAwait(false);
-		return result.Where(predicate, error);
-	}
-
-	/// <summary>
-	/// Asynchronously evaluates a predicate on the successful result value and returns a failed result with the specified
-	/// error message if the predicate is not satisfied.
-	/// </summary>
-	/// <remarks>If the original result is not successful, the predicate is not evaluated and the original result is
-	/// returned. If the predicate throws an exception, the returned result will be a failure containing the
-	/// exception.</remarks>
-	/// <typeparam name="T">The type of the value contained in the result.</typeparam>
-	/// <param name="resultTask">A task that represents the asynchronous operation returning a result to be filtered.</param>
-	/// <param name="predicate">An asynchronous function that evaluates the result value and returns <see langword="true"/> to keep the result, or
-	/// <see langword="false"/> to convert it to a failure.</param>
-	/// <param name="error">The error message to use if the predicate returns <see langword="false"/>.</param>
-	/// <returns>A task that represents the asynchronous operation. The result is successful if the original result is successful
-	/// and the predicate returns <see langword="true"/>; otherwise, a failed result with the specified error message or
-	/// the exception encountered during predicate evaluation.</returns>
-	/// <exception cref="ArgumentException">Thrown if <paramref name="error"/> is null, empty, or consists only of white-space characters.</exception>
-	public static async Task<Result<T>> WhereAsyncTask<T>(
-		this Task<Result<T>> resultTask,
-		Func<T, Task<bool>> predicate,
-		Exception error) {
-		ArgumentNullException.ThrowIfNull(predicate);
-		ArgumentNullException.ThrowIfNull(error);
-
-		var result = await resultTask.ConfigureAwait(false);
-
-		if (result.IsSuccess) {
-			try {
-				var passes = await predicate(result.Value).ConfigureAwait(false);
-				return passes ? result : Result<T>.Fail(error);
-			} catch (Exception ex) {
-				return Result<T>.Fail(ex);
-			}
-		}
-
-		return result;
-	}
-
-
 	// =============== SWITCH ASYNC ===============
 	// ===========================================
 
@@ -2067,6 +1958,32 @@ public static class ResultAsyncExtensions {
 
 		var result = await resultTask.ConfigureAwait(false);
 		return await result.EnsureAsyncTask(predicate, errorFactory);
+	}
+
+	/// <summary>
+	/// Ensures that the task result value satisfies a specified asynchronous condition.
+	/// </summary>
+	public static async ValueTask<Result<T>> EnsureAsync<T>(
+		this ValueTask<Result<T>> resultTask,
+		Func<T, ValueTask<bool>> predicate,
+		string errorMessage) {
+
+		ArgumentException.ThrowIfNullOrWhiteSpace(errorMessage);
+		var result = await resultTask.ConfigureAwait(false);
+		return await result.EnsureAsync(predicate, errorMessage);
+	}
+
+	/// <summary>
+	/// Ensures that the task result value satisfies a specified asynchronous condition.
+	/// </summary>
+	public static async Task<Result<T>> EnsureAsyncTask<T>(
+		this Task<Result<T>> resultTask,
+		Func<T, Task<bool>> predicate,
+		string errorMessage) {
+
+		ArgumentException.ThrowIfNullOrWhiteSpace(errorMessage);
+		var result = await resultTask.ConfigureAwait(false);
+		return await result.EnsureAsyncTask(predicate, errorMessage);
 	}
 
 
