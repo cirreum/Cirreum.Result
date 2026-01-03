@@ -186,6 +186,13 @@ public readonly struct Optional<T> : IEquatable<Optional<T>> {
 	}
 
 	/// <summary>
+	/// Returns the value if present; otherwise, returns <see langword="null"/>.
+	/// </summary>
+	/// <returns>The contained value if present; otherwise, <see langword="null"/>.</returns>
+	public T? GetValueOrNull() =>
+		this._hasValue ? this._value : default;
+
+	/// <summary>
 	/// Converts this optional to a <see cref="Result{T}"/>, using the specified error if empty.
 	/// </summary>
 	/// <param name="errorIfEmpty">The exception to use if this optional is empty.</param>

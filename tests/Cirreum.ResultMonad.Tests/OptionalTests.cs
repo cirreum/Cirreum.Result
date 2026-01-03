@@ -493,6 +493,58 @@ public class OptionalTests {
 
 	#endregion
 
+	#region GetValueOrNull
+
+	[TestMethod]
+	public void GetValueOrNull_WhenHasValue_ReturnsValue() {
+		// Arrange
+		var optional = Optional.From("hello");
+
+		// Act
+		var value = optional.GetValueOrNull();
+
+		// Assert
+		Assert.AreEqual("hello", value);
+	}
+
+	[TestMethod]
+	public void GetValueOrNull_WhenEmpty_ReturnsNull() {
+		// Arrange
+		var optional = Optional<string>.Empty;
+
+		// Act
+		var value = optional.GetValueOrNull();
+
+		// Assert
+		Assert.IsNull(value);
+	}
+
+	[TestMethod]
+	public void GetValueOrNull_WithValueType_WhenHasValue_ReturnsValue() {
+		// Arrange
+		var optional = Optional.From(42);
+
+		// Act
+		var value = optional.GetValueOrNull();
+
+		// Assert
+		Assert.AreEqual(42, value);
+	}
+
+	[TestMethod]
+	public void GetValueOrNull_WithValueType_WhenEmpty_ReturnsDefault() {
+		// Arrange
+		var optional = Optional<int>.Empty;
+
+		// Act
+		var value = optional.GetValueOrNull();
+
+		// Assert
+		Assert.AreEqual(default(int), value);
+	}
+
+	#endregion
+
 	#region ToResult
 
 	[TestMethod]

@@ -190,10 +190,10 @@ All of the above, plus:
 
 ### `Optional<T>`
 
-- `HasValue`, `Value`, `TryGetValue`
+- `HasValue`, `IsEmpty`, `Value`, `TryGetValue`
 - `From(T?)`, `Empty` factory methods
 - `Map`, `Then`, `Match`, `Switch`, `Where`
-- `GetValueOrDefault(T)`, `GetValueOrDefault(Func<T>)`
+- `GetValueOrDefault(T)`, `GetValueOrDefault(Func<T>)`, `GetValueOrNull()`
 - `ToResult(Exception)` for converting to `Result<T>`
 
 ### Async Extensions
