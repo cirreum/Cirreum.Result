@@ -304,6 +304,46 @@ public readonly struct Result<T> : IResult<T>, IEquatable<Result<T>> {
 
 	/// <summary>
 	/// Ensures that the result value satisfies a specified condition.
+	/// If the condition is not met, converts the success result to a failure.
+	/// </summary>
+	/// <param name="predicate">A function that tests the value against a condition.</param>
+	/// <param name="error">The exception to use when the condition is not met.</param>
+	/// <returns>
+	/// The current result if it's already a failure or if the predicate returns true;
+	/// otherwise, a failed result with the error from <paramref name="error"/>.
+	/// </returns>
+	/// <exception cref="ArgumentNullException">
+	/// Thrown when <paramref name="predicate"/> or <paramref name="error"/> is null.
+	/// </exception>
+	/// <remarks>
+	/// This method allows you to add validation to a success result without breaking
+	/// the railway-oriented programming flow. Multiple Ensure calls can be chained
+	/// to apply sequential validation rules.
+	/// </remarks>
+	public Result<T> Ensure(
+		Func<T, bool> predicate,
+		Exception error) {
+
+		ArgumentNullException.ThrowIfNull(predicate);
+		ArgumentNullException.ThrowIfNull(error);
+
+		if (this.IsSuccess) {
+			try {
+				if (!predicate(this.Value)) {
+					return Fail(error);
+				}
+				return this;
+			} catch (Exception ex) {
+				return Fail(ex);
+			}
+		}
+
+		return this;
+
+	}
+
+	/// <summary>
+	/// Ensures that the result value satisfies a specified condition.
 	/// If the condition is not met, converts the success result to a failure with the specified error message.
 	/// </summary>
 	/// <param name="predicate">A function that tests the value against a condition.</param>

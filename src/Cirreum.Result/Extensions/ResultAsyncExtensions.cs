@@ -1889,6 +1889,56 @@ public static class ResultAsyncExtensions {
 	}
 
 	/// <summary>
+	/// Ensures that the result value satisfies a specified asynchronous condition.
+	/// </summary>
+	public static async ValueTask<Result<T>> EnsureAsync<T>(
+		this Result<T> result,
+		Func<T, ValueTask<bool>> predicate,
+		Exception error) {
+
+		ArgumentNullException.ThrowIfNull(predicate);
+		ArgumentNullException.ThrowIfNull(error);
+
+		if (result.IsSuccess) {
+			try {
+				if (!await predicate(result.Value).ConfigureAwait(false)) {
+					return Result<T>.Fail(error);
+				}
+				return result;
+			} catch (Exception ex) {
+				return Result<T>.Fail(ex);
+			}
+		}
+
+		return result;
+	}
+
+	/// <summary>
+	/// Ensures that the result value satisfies a specified asynchronous condition.
+	/// </summary>
+	public static async Task<Result<T>> EnsureAsyncTask<T>(
+		this Result<T> result,
+		Func<T, Task<bool>> predicate,
+		Exception error) {
+
+		ArgumentNullException.ThrowIfNull(predicate);
+		ArgumentNullException.ThrowIfNull(error);
+
+		if (result.IsSuccess) {
+			try {
+				if (!await predicate(result.Value).ConfigureAwait(false)) {
+					return Result<T>.Fail(error);
+				}
+				return result;
+			} catch (Exception ex) {
+				return Result<T>.Fail(ex);
+			}
+		}
+
+		return result;
+	}
+
+	/// <summary>
 	/// Ensures that the task result value satisfies a specified condition.
 	/// </summary>
 	public static async ValueTask<Result<T>> EnsureAsync<T>(
@@ -1934,6 +1984,30 @@ public static class ResultAsyncExtensions {
 
 		var result = await resultTask.ConfigureAwait(false);
 		return result.Ensure(predicate, errorMessage);
+	}
+
+	/// <summary>
+	/// Ensures that the task result value satisfies a specified condition.
+	/// </summary>
+	public static async ValueTask<Result<T>> EnsureAsync<T>(
+		this ValueTask<Result<T>> resultTask,
+		Func<T, bool> predicate,
+		Exception error) {
+
+		var result = await resultTask.ConfigureAwait(false);
+		return result.Ensure(predicate, error);
+	}
+
+	/// <summary>
+	/// Ensures that the task result value satisfies a specified condition.
+	/// </summary>
+	public static async Task<Result<T>> EnsureAsyncTask<T>(
+		this Task<Result<T>> resultTask,
+		Func<T, bool> predicate,
+		Exception error) {
+
+		var result = await resultTask.ConfigureAwait(false);
+		return result.Ensure(predicate, error);
 	}
 
 	/// <summary>
@@ -1984,6 +2058,30 @@ public static class ResultAsyncExtensions {
 		ArgumentException.ThrowIfNullOrWhiteSpace(errorMessage);
 		var result = await resultTask.ConfigureAwait(false);
 		return await result.EnsureAsyncTask(predicate, errorMessage);
+	}
+
+	/// <summary>
+	/// Ensures that the task result value satisfies a specified asynchronous condition.
+	/// </summary>
+	public static async ValueTask<Result<T>> EnsureAsync<T>(
+		this ValueTask<Result<T>> resultTask,
+		Func<T, ValueTask<bool>> predicate,
+		Exception error) {
+
+		var result = await resultTask.ConfigureAwait(false);
+		return await result.EnsureAsync(predicate, error);
+	}
+
+	/// <summary>
+	/// Ensures that the task result value satisfies a specified asynchronous condition.
+	/// </summary>
+	public static async Task<Result<T>> EnsureAsyncTask<T>(
+		this Task<Result<T>> resultTask,
+		Func<T, Task<bool>> predicate,
+		Exception error) {
+
+		var result = await resultTask.ConfigureAwait(false);
+		return await result.EnsureAsyncTask(predicate, error);
 	}
 
 

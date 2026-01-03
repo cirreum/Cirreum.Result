@@ -16,26 +16,29 @@ using System.Diagnostics.CodeAnalysis;
 /// <typeparam name="T">The type of the value when present.</typeparam>
 public readonly struct Optional<T> : IEquatable<Optional<T>> {
 
-	private readonly T? _value;
 	private readonly bool _hasValue;
+	private readonly T? _value;
 
 	/// <summary>
-	/// Creates an optional containing the specified value.
+	/// Creates a new <see cref="Optional{T}"/> instance that contains the specified non-null value.
 	/// </summary>
-	/// <remarks>
-	/// If <paramref name="value"/> is <see langword="null"/>, returns <see cref="Empty"/>
-	/// instead of wrapping the null value.
-	/// </remarks>
-	/// <param name="value">The value to wrap.</param>
-	/// <returns>An <see cref="Optional{T}"/> containing the value, or <see cref="Empty"/> if null.</returns>
-	public static Optional<T> From(T? value) =>
-		value is null ? Empty : new(value);
+	/// <param name="value">The value to be wrapped in the <see cref="Optional{T}"/>. Cannot be null.</param>
+	/// <returns>An <see cref="Optional{T}"/> that contains the specified value.</returns>
+	public static Optional<T> For(T value) {
+		ArgumentNullException.ThrowIfNull(value);
+		return new(value);
+	}
 
 	/// <summary>
 	/// Represents an empty optional with no value.
 	/// </summary>
 	public static Optional<T> Empty => default;
 
+
+	/// <summary>
+	/// private constructor to create an <see cref="Optional{T}"/> with a value.
+	/// </summary>
+	/// <param name="value">the non-null value.</param>
 	private Optional(T value) {
 		this._value = value;
 		this._hasValue = true;
@@ -101,7 +104,7 @@ public readonly struct Optional<T> : IEquatable<Optional<T>> {
 	public Optional<TResult> Map<TResult>(Func<T, TResult> selector) {
 		ArgumentNullException.ThrowIfNull(selector);
 		return this._hasValue
-			? Optional<TResult>.From(selector(this._value!))
+			? Optional.From(selector(this._value!))
 			: Optional<TResult>.Empty;
 	}
 
@@ -219,9 +222,17 @@ public readonly struct Optional<T> : IEquatable<Optional<T>> {
 	}
 
 	/// <inheritdoc />
-	public bool Equals(Optional<T> other) =>
-		this._hasValue == other._hasValue &&
-		EqualityComparer<T>.Default.Equals(this._value, other._value);
+	public bool Equals(Optional<T> other) {
+		if (this._hasValue != other._hasValue) {
+			return false;
+		}
+
+		if (!this._hasValue) {
+			return true; // Both empty
+		}
+
+		return EqualityComparer<T>.Default.Equals(this._value!, other._value!);
+	}
 
 	/// <inheritdoc />
 	public override bool Equals(object? obj) =>
@@ -229,7 +240,9 @@ public readonly struct Optional<T> : IEquatable<Optional<T>> {
 
 	/// <inheritdoc />
 	public override int GetHashCode() =>
-		HashCode.Combine(this._hasValue, this._value);
+		this._hasValue
+			? HashCode.Combine(this._hasValue, this._value!)
+			: this._hasValue.GetHashCode();
 
 	/// <inheritdoc />
 	public override string ToString() =>

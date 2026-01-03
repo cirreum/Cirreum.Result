@@ -42,6 +42,42 @@ public readonly struct Result : IResult, IEquatable<Result> {
 	/// <returns>A failed <see cref="Result{T}"/> containing the specified error.</returns>
 	public static Result<T> Fail<T>(Exception error) => Result<T>.Fail(error);
 
+	/// <summary>
+	/// Creates a result from an optional value.
+	/// </summary>
+	/// <typeparam name="T">The type of the value.</typeparam>
+	/// <param name="optional">The optional value to convert.</param>
+	/// <param name="error">The error to use if the optional is empty.</param>
+	/// <returns>A success result with the value if the optional has a value; otherwise, a failure result with the specified error.</returns>
+	public static Result<T> FromOptional<T>(Optional<T> optional, Exception error) {
+		ArgumentNullException.ThrowIfNull(error);
+		return optional.HasValue ? Result<T>.Success(optional.Value) : Result<T>.Fail(error);
+	}
+
+	/// <summary>
+	/// Creates a result from an optional value.
+	/// </summary>
+	/// <typeparam name="T">The type of the value.</typeparam>
+	/// <param name="optional">The optional value to convert.</param>
+	/// <param name="errorMessage">The error message to use if the optional is empty.</param>
+	/// <returns>A success result with the value if the optional has a value; otherwise, a failure result with an InvalidOperationException.</returns>
+	public static Result<T> FromOptional<T>(Optional<T> optional, string errorMessage) {
+		ArgumentException.ThrowIfNullOrWhiteSpace(errorMessage);
+		return optional.HasValue ? Result<T>.Success(optional.Value) : Result<T>.Fail(new InvalidOperationException(errorMessage));
+	}
+
+	/// <summary>
+	/// Creates a result from an optional value.
+	/// </summary>
+	/// <typeparam name="T">The type of the value.</typeparam>
+	/// <param name="optional">The optional value to convert.</param>
+	/// <param name="errorFactory">A function that creates an error if the optional is empty.</param>
+	/// <returns>A success result with the value if the optional has a value; otherwise, a failure result with the error from the factory.</returns>
+	public static Result<T> FromOptional<T>(Optional<T> optional, Func<Exception> errorFactory) {
+		ArgumentNullException.ThrowIfNull(errorFactory);
+		return optional.HasValue ? Result<T>.Success(optional.Value) : Result<T>.Fail(errorFactory());
+	}
+
 	private readonly bool _isSuccess;
 	private readonly Exception? _error;
 

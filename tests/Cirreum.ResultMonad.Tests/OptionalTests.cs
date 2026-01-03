@@ -12,7 +12,7 @@ public class OptionalTests {
 	[TestMethod]
 	public void From_WithValue_CreatesOptionalWithValue() {
 		// Arrange & Act
-		var optional = Optional<string>.From("hello");
+		var optional = Optional.From("hello");
 
 		// Assert
 		Assert.IsTrue(optional.HasValue);
@@ -23,7 +23,7 @@ public class OptionalTests {
 	[TestMethod]
 	public void From_WithNull_CreatesEmptyOptional() {
 		// Arrange & Act
-		var optional = Optional<string>.From(null);
+		var optional = Optional.From<string>(null);
 
 		// Assert
 		Assert.IsFalse(optional.HasValue);
@@ -61,7 +61,7 @@ public class OptionalTests {
 	[TestMethod]
 	public void StaticEmpty_CreatesOptionalWithNoValue() {
 		// Arrange & Act
-		var optional = Optional.Empty<int>();
+		var optional = Optional<int>.Empty;
 
 		// Assert
 		Assert.IsFalse(optional.HasValue);
@@ -540,7 +540,7 @@ public class OptionalTests {
 		var value = optional.GetValueOrNull();
 
 		// Assert
-		Assert.AreEqual(default(int), value);
+		Assert.AreEqual(default, value);
 	}
 
 	#endregion

@@ -84,6 +84,200 @@ public class GeneralTests {
 
 	#endregion
 
+	#region FromOptional Tests
+
+	[TestMethod]
+	public void FromOptional_WithValue_DirectException_ShouldReturnSuccess() {
+		// Arrange
+		var optional = Optional.From(42);
+		var error = new InvalidOperationException("not found");
+
+		// Act
+		var result = Result.FromOptional(optional, error);
+
+		// Assert
+		Assert.IsTrue(result.IsSuccess);
+		Assert.AreEqual(42, result.Value);
+		Assert.IsNull(result.Error);
+	}
+
+	[TestMethod]
+	public void FromOptional_Empty_DirectException_ShouldReturnFailureWithProvidedError() {
+		// Arrange
+		var optional = Optional<int>.Empty;
+		var error = new InvalidOperationException("not found");
+
+		// Act
+		var result = Result.FromOptional(optional, error);
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.AreSame(error, result.Error);
+		Assert.AreEqual(default, result.Value);
+	}
+
+	[TestMethod]
+	public void FromOptional_WithValue_ErrorMessage_ShouldReturnSuccess() {
+		// Arrange
+		var optional = Optional.From("test");
+
+		// Act
+		var result = Result.FromOptional(optional, "Value not found");
+
+		// Assert
+		Assert.IsTrue(result.IsSuccess);
+		Assert.AreEqual("test", result.Value);
+		Assert.IsNull(result.Error);
+	}
+
+	[TestMethod]
+	public void FromOptional_Empty_ErrorMessage_ShouldReturnFailureWithInvalidOperationException() {
+		// Arrange
+		var optional = Optional<string>.Empty;
+
+		// Act
+		var result = Result.FromOptional(optional, "Value not found");
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.IsInstanceOfType<InvalidOperationException>(result.Error);
+		Assert.AreEqual("Value not found", result.Error!.Message);
+	}
+
+	[TestMethod]
+	public void FromOptional_WithValue_ErrorFactory_ShouldReturnSuccess() {
+		// Arrange
+		var optional = Optional.From(100);
+
+		// Act
+		var result = Result.FromOptional(optional, () => new ArgumentException("should not be called"));
+
+		// Assert
+		Assert.IsTrue(result.IsSuccess);
+		Assert.AreEqual(100, result.Value);
+		Assert.IsNull(result.Error);
+	}
+
+	[TestMethod]
+	public void FromOptional_Empty_ErrorFactory_ShouldReturnFailureWithFactoryError() {
+		// Arrange
+		var optional = Optional<int>.Empty;
+		var error = new ArgumentException("created by factory");
+		var factoryCalled = false;
+
+		// Act
+		var result = Result.FromOptional(optional, () => {
+			factoryCalled = true;
+			return error;
+		});
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.IsTrue(factoryCalled);
+		Assert.AreSame(error, result.Error);
+	}
+
+	[TestMethod]
+	public void FromOptional_DirectException_NullError_ShouldThrow() {
+		// Arrange
+		var optional = Optional<int>.Empty;
+
+		// Act & Assert
+		var exception = Assert.ThrowsExactly<ArgumentNullException>(() =>
+			Result.FromOptional(optional, (Exception)null!));
+
+		Assert.AreEqual("error", exception.ParamName);
+	}
+
+	[TestMethod]
+	public void FromOptional_ErrorMessage_NullOrEmpty_ShouldThrow() {
+		// Arrange
+		var optional = Optional<int>.Empty;
+
+		// Act & Assert - null message
+		string? nullMessage = null;
+		Assert.ThrowsExactly<ArgumentNullException>(() =>
+			Result.FromOptional(optional, nullMessage!));
+
+		// Act & Assert - empty message
+		Assert.ThrowsExactly<ArgumentException>(() =>
+			Result.FromOptional(optional, ""));
+
+		// Act & Assert - whitespace message
+		Assert.ThrowsExactly<ArgumentException>(() =>
+			Result.FromOptional(optional, "   "));
+	}
+
+	[TestMethod]
+	public void FromOptional_ErrorFactory_NullFactory_ShouldThrow() {
+		// Arrange
+		var optional = Optional<int>.Empty;
+
+		// Act & Assert
+		var exception = Assert.ThrowsExactly<ArgumentNullException>(() =>
+			Result.FromOptional(optional, (Func<Exception>)null!));
+
+		Assert.AreEqual("errorFactory", exception.ParamName);
+	}
+
+	[TestMethod]
+	public void FromOptional_WithNullableType_ShouldWorkCorrectly() {
+		// Arrange
+		var optionalWithValue = Optional.From("test");
+		var optionalEmpty = Optional<string>.Empty;
+
+		// Act
+		var resultWithValue = Result.FromOptional(optionalWithValue, "Not found");
+		var resultEmpty = Result.FromOptional(optionalEmpty, "Not found");
+
+		// Assert
+		Assert.IsTrue(resultWithValue.IsSuccess);
+		Assert.AreEqual("test", resultWithValue.Value);
+
+		Assert.IsFalse(resultEmpty.IsSuccess);
+		Assert.AreEqual("Not found", resultEmpty.Error!.Message);
+	}
+
+	[TestMethod]
+	public void FromOptional_Chaining_WithOptionalToResult() {
+		// Arrange
+		static Optional<int> FindUserId(string username) =>
+			username == "admin" ? Optional.From(1) : Optional<int>.Empty;
+
+		// Act
+		var result = Result
+			.FromOptional(
+				FindUserId("guest"),
+				new NotFoundException("User not found"))
+			.Then(id => Result.From($"User ID: {id}"));
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.IsInstanceOfType<NotFoundException>(result.Error);
+		Assert.AreEqual("User not found", result.Error!.Message);
+	}
+
+	[TestMethod]
+	public void FromOptional_VsToResult_ShouldBeEquivalent() {
+		// Arrange
+		var optional = Optional.From(42);
+		var error = new InvalidOperationException("not found");
+
+		// Act
+		var fromOptionalResult = Result.FromOptional(optional, error);
+		var toResultResult = optional.ToResult(error);
+
+		// Assert
+		Assert.AreEqual(fromOptionalResult.IsSuccess, toResultResult.IsSuccess);
+		Assert.AreEqual(fromOptionalResult.Value, toResultResult.Value);
+		Assert.AreEqual(fromOptionalResult.Error, toResultResult.Error);
+	}
+
+	// Custom exception for testing
+	private class NotFoundException(string message) : Exception(message);
+
+	#endregion
+
 	#region Map Tests
 
 	[TestMethod]

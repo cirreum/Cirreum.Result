@@ -275,4 +275,216 @@ public class ResultOfTTests {
 		Assert.IsNotNull(nonGenericResult.Error);
 		Assert.AreSame(ex, nonGenericResult.Error);
 	}
+
+	#region Ensure Tests
+
+	[TestMethod]
+	public void Ensure_WithErrorFactory_WhenPredicateReturnsTrue_ReturnsSuccess() {
+		// Arrange
+		var result = Result<int>.Success(42);
+
+		// Act
+		var ensuredResult = result.Ensure(
+			x => x > 0,
+			x => new InvalidOperationException($"{x} is not positive"));
+
+		// Assert
+		Assert.IsTrue(ensuredResult.IsSuccess);
+		Assert.AreEqual(42, ensuredResult.Value);
+	}
+
+	[TestMethod]
+	public void Ensure_WithErrorFactory_WhenPredicateReturnsFalse_ReturnsFailure() {
+		// Arrange
+		var result = Result<int>.Success(-5);
+
+		// Act
+		var ensuredResult = result.Ensure(
+			x => x > 0,
+			x => new InvalidOperationException($"{x} is not positive"));
+
+		// Assert
+		Assert.IsFalse(ensuredResult.IsSuccess);
+		Assert.IsInstanceOfType(ensuredResult.Error, typeof(InvalidOperationException));
+		Assert.AreEqual("-5 is not positive", ensuredResult.Error!.Message);
+	}
+
+	[TestMethod]
+	public void Ensure_WithErrorFactory_WhenAlreadyFailed_ReturnsOriginalFailure() {
+		// Arrange
+		var originalError = new InvalidOperationException("original error");
+		var result = Result<int>.Fail(originalError);
+		var factoryCalled = false;
+
+		// Act
+		var ensuredResult = result.Ensure(
+			x => true,
+			x => {
+				factoryCalled = true;
+				return new InvalidOperationException("new error");
+			});
+
+		// Assert
+		Assert.IsFalse(ensuredResult.IsSuccess);
+		Assert.AreSame(originalError, ensuredResult.Error);
+		Assert.IsFalse(factoryCalled);
+	}
+
+	[TestMethod]
+	public void Ensure_WithErrorFactory_WhenPredicateThrows_ReturnsFailureWithException() {
+		// Arrange
+		var result = Result<int>.Success(42);
+		var predicateException = new InvalidOperationException("predicate failed");
+
+		// Act
+		var ensuredResult = result.Ensure(
+			x => throw predicateException,
+			x => new InvalidOperationException("should not be called"));
+
+		// Assert
+		Assert.IsFalse(ensuredResult.IsSuccess);
+		Assert.AreSame(predicateException, ensuredResult.Error);
+	}
+
+	[TestMethod]
+	public void Ensure_WithException_WhenPredicateReturnsTrue_ReturnsSuccess() {
+		// Arrange
+		var result = Result<int>.Success(42);
+		var error = new InvalidOperationException("validation error");
+
+		// Act
+		var ensuredResult = result.Ensure(x => x > 0, error);
+
+		// Assert
+		Assert.IsTrue(ensuredResult.IsSuccess);
+		Assert.AreEqual(42, ensuredResult.Value);
+	}
+
+	[TestMethod]
+	public void Ensure_WithException_WhenPredicateReturnsFalse_ReturnsFailureWithProvidedError() {
+		// Arrange
+		var result = Result<int>.Success(-5);
+		var error = new InvalidOperationException("value must be positive");
+
+		// Act
+		var ensuredResult = result.Ensure(x => x > 0, error);
+
+		// Assert
+		Assert.IsFalse(ensuredResult.IsSuccess);
+		Assert.AreSame(error, ensuredResult.Error);
+	}
+
+	[TestMethod]
+	public void Ensure_WithException_WhenAlreadyFailed_ReturnsOriginalFailure() {
+		// Arrange
+		var originalError = new InvalidOperationException("original error");
+		var result = Result<int>.Fail(originalError);
+		var newError = new InvalidOperationException("new error");
+
+		// Act
+		var ensuredResult = result.Ensure(x => true, newError);
+
+		// Assert
+		Assert.IsFalse(ensuredResult.IsSuccess);
+		Assert.AreSame(originalError, ensuredResult.Error);
+	}
+
+	[TestMethod]
+	public void Ensure_WithException_WhenPredicateThrows_ReturnsFailureWithException() {
+		// Arrange
+		var result = Result<int>.Success(42);
+		var predicateException = new InvalidOperationException("predicate failed");
+		var providedError = new InvalidOperationException("provided error");
+
+		// Act
+		var ensuredResult = result.Ensure(x => throw predicateException, providedError);
+
+		// Assert
+		Assert.IsFalse(ensuredResult.IsSuccess);
+		Assert.AreSame(predicateException, ensuredResult.Error);
+	}
+
+	[TestMethod]
+	public void Ensure_WithErrorMessage_WhenPredicateReturnsTrue_ReturnsSuccess() {
+		// Arrange
+		var result = Result<string>.Success("hello");
+
+		// Act
+		var ensuredResult = result.Ensure(
+			x => x.Length > 3,
+			"String must be longer than 3 characters");
+
+		// Assert
+		Assert.IsTrue(ensuredResult.IsSuccess);
+		Assert.AreEqual("hello", ensuredResult.Value);
+	}
+
+	[TestMethod]
+	public void Ensure_WithErrorMessage_WhenPredicateReturnsFalse_ReturnsFailureWithInvalidOperationException() {
+		// Arrange
+		var result = Result<string>.Success("hi");
+
+		// Act
+		var ensuredResult = result.Ensure(
+			x => x.Length > 3,
+			"String must be longer than 3 characters");
+
+		// Assert
+		Assert.IsFalse(ensuredResult.IsSuccess);
+		Assert.IsInstanceOfType(ensuredResult.Error, typeof(InvalidOperationException));
+		Assert.AreEqual("String must be longer than 3 characters", ensuredResult.Error!.Message);
+	}
+
+	[TestMethod]
+	public void Ensure_WithErrorMessage_WhenAlreadyFailed_ReturnsOriginalFailure() {
+		// Arrange
+		var originalError = new InvalidOperationException("original error");
+		var result = Result<string>.Fail(originalError);
+
+		// Act
+		var ensuredResult = result.Ensure(x => true, "validation message");
+
+		// Assert
+		Assert.IsFalse(ensuredResult.IsSuccess);
+		Assert.AreSame(originalError, ensuredResult.Error);
+	}
+
+	[TestMethod]
+	public void Ensure_CanChainMultipleValidations() {
+		// Arrange
+		var result = Result<int>.Success(15);
+
+		// Act
+		var ensuredResult = result
+			.Ensure(x => x > 0, "Value must be positive")
+			.Ensure(x => x < 100, "Value must be less than 100")
+			.Ensure(x => x % 5 == 0, "Value must be divisible by 5");
+
+		// Assert
+		Assert.IsTrue(ensuredResult.IsSuccess);
+		Assert.AreEqual(15, ensuredResult.Value);
+	}
+
+	[TestMethod]
+	public void Ensure_ChainedValidations_StopOnFirstFailure() {
+		// Arrange
+		var result = Result<int>.Success(150);
+		var thirdValidationCalled = false;
+
+		// Act
+		var ensuredResult = result
+			.Ensure(x => x > 0, "Value must be positive")
+			.Ensure(x => x < 100, "Value must be less than 100")
+			.Ensure(x => {
+				thirdValidationCalled = true;
+				return x % 5 == 0;
+			}, "Value must be divisible by 5");
+
+		// Assert
+		Assert.IsFalse(ensuredResult.IsSuccess);
+		Assert.AreEqual("Value must be less than 100", ensuredResult.Error!.Message);
+		Assert.IsFalse(thirdValidationCalled);
+	}
+
+	#endregion
 }

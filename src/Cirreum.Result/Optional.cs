@@ -6,18 +6,12 @@
 public static class Optional {
 
 	/// <summary>
-	/// Creates an optional containing the specified value.
+	/// Creates an optional containing the specified value, or <see cref="Optional{T}.Empty"/> if null.
 	/// </summary>
 	/// <typeparam name="T">The type of the value.</typeparam>
 	/// <param name="value">The value to wrap.</param>
-	/// <returns>An <see cref="Optional{T}"/> containing the value, or empty if null.</returns>
-	public static Optional<T> From<T>(T? value) => Optional<T>.From(value);
-
-	/// <summary>
-	/// Returns an empty optional of the specified type.
-	/// </summary>
-	/// <typeparam name="T">The type of the optional.</typeparam>
-	/// <returns>An empty <see cref="Optional{T}"/>.</returns>
-	public static Optional<T> Empty<T>() => Optional<T>.Empty;
+	/// <returns>An <see cref="Optional{T}"/> containing the value, or <see cref="Optional{T}.Empty"/> if null.</returns>
+	public static Optional<T> From<T>(T? value) =>
+		value is null ? default : Optional<T>.For(value);
 
 }

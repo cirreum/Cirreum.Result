@@ -419,6 +419,256 @@ public sealed class ResultAsyncExtensionTests {
 		Assert.AreEqual("Value too small", result.Error!.Message);
 	}
 
+	// Tests for new overloads with direct Exception parameter
+
+	[TestMethod]
+	public async Task EnsureAsync_WithDirectException_WhenPredicateReturnsTrue_ShouldRemainSuccessful() {
+		// Arrange
+		var resultTask = new ValueTask<Result<int>>(Result<int>.Success(42));
+		var error = new InvalidOperationException("validation error");
+
+		// Act
+		var result = await resultTask.EnsureAsync(x => x > 0, error);
+
+		// Assert
+		Assert.IsTrue(result.IsSuccess);
+		Assert.AreEqual(42, result.Value);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsync_WithDirectException_WhenPredicateReturnsFalse_ShouldFailWithProvidedError() {
+		// Arrange
+		var resultTask = new ValueTask<Result<int>>(Result<int>.Success(-5));
+		var error = new InvalidOperationException("value must be positive");
+
+		// Act
+		var result = await resultTask.EnsureAsync(x => x > 0, error);
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.AreSame(error, result.Error);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsyncTask_WithDirectException_WhenPredicateReturnsTrue_ShouldRemainSuccessful() {
+		// Arrange
+		var resultTask = Task.FromResult(Result<int>.Success(42));
+		var error = new InvalidOperationException("validation error");
+
+		// Act
+		var result = await resultTask.EnsureAsyncTask(x => x > 0, error);
+
+		// Assert
+		Assert.IsTrue(result.IsSuccess);
+		Assert.AreEqual(42, result.Value);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsyncTask_WithDirectException_WhenPredicateReturnsFalse_ShouldFailWithProvidedError() {
+		// Arrange
+		var resultTask = Task.FromResult(Result<int>.Success(-5));
+		var error = new InvalidOperationException("value must be positive");
+
+		// Act
+		var result = await resultTask.EnsureAsyncTask(x => x > 0, error);
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.AreSame(error, result.Error);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsync_WithAsyncPredicate_DirectException_WhenPredicateReturnsTrue_ShouldRemainSuccessful() {
+		// Arrange
+		var resultTask = new ValueTask<Result<string>>(Result<string>.Success("hello"));
+		var error = new InvalidOperationException("validation error");
+
+		// Act
+		var result = await resultTask.EnsureAsync(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x.Length > 3;
+			},
+			error);
+
+		// Assert
+		Assert.IsTrue(result.IsSuccess);
+		Assert.AreEqual("hello", result.Value);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsync_WithAsyncPredicate_DirectException_WhenPredicateReturnsFalse_ShouldFailWithProvidedError() {
+		// Arrange
+		var resultTask = new ValueTask<Result<string>>(Result<string>.Success("hi"));
+		var error = new InvalidOperationException("string too short");
+
+		// Act
+		var result = await resultTask.EnsureAsync(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x.Length > 3;
+			},
+			error);
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.AreSame(error, result.Error);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsyncTask_WithAsyncPredicate_DirectException_WhenPredicateReturnsTrue_ShouldRemainSuccessful() {
+		// Arrange
+		var resultTask = Task.FromResult(Result<string>.Success("hello"));
+		var error = new InvalidOperationException("validation error");
+
+		// Act
+		var result = await resultTask.EnsureAsyncTask(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x.Length > 3;
+			},
+			error);
+
+		// Assert
+		Assert.IsTrue(result.IsSuccess);
+		Assert.AreEqual("hello", result.Value);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsyncTask_WithAsyncPredicate_DirectException_WhenPredicateReturnsFalse_ShouldFailWithProvidedError() {
+		// Arrange
+		var resultTask = Task.FromResult(Result<string>.Success("hi"));
+		var error = new InvalidOperationException("string too short");
+
+		// Act
+		var result = await resultTask.EnsureAsyncTask(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x.Length > 3;
+			},
+			error);
+
+		// Assert
+		Assert.IsFalse(result.IsSuccess);
+		Assert.AreSame(error, result.Error);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsync_OnResult_WithAsyncPredicate_DirectException_WhenSuccessful() {
+		// Arrange
+		var result = Result<int>.Success(42);
+		var error = new InvalidOperationException("validation error");
+
+		// Act
+		var ensuredResult = await result.EnsureAsync(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x > 0;
+			},
+			error);
+
+		// Assert
+		Assert.IsTrue(ensuredResult.IsSuccess);
+		Assert.AreEqual(42, ensuredResult.Value);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsync_OnResult_WithAsyncPredicate_DirectException_WhenFails() {
+		// Arrange
+		var result = Result<int>.Success(-5);
+		var error = new InvalidOperationException("value must be positive");
+
+		// Act
+		var ensuredResult = await result.EnsureAsync(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x > 0;
+			},
+			error);
+
+		// Assert
+		Assert.IsFalse(ensuredResult.IsSuccess);
+		Assert.AreSame(error, ensuredResult.Error);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsyncTask_OnResult_WithAsyncPredicate_DirectException_WhenSuccessful() {
+		// Arrange
+		var result = Result<int>.Success(42);
+		var error = new InvalidOperationException("validation error");
+
+		// Act
+		var ensuredResult = await result.EnsureAsyncTask(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x > 0;
+			},
+			error);
+
+		// Assert
+		Assert.IsTrue(ensuredResult.IsSuccess);
+		Assert.AreEqual(42, ensuredResult.Value);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsyncTask_OnResult_WithAsyncPredicate_DirectException_WhenFails() {
+		// Arrange
+		var result = Result<int>.Success(-5);
+		var error = new InvalidOperationException("value must be positive");
+
+		// Act
+		var ensuredResult = await result.EnsureAsyncTask(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return x > 0;
+			},
+			error);
+
+		// Assert
+		Assert.IsFalse(ensuredResult.IsSuccess);
+		Assert.AreSame(error, ensuredResult.Error);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsync_WithAsyncPredicate_DirectException_WhenAlreadyFailed_ReturnsOriginalFailure() {
+		// Arrange
+		var originalError = new InvalidOperationException("original error");
+		var result = Result<int>.Fail(originalError);
+		var newError = new InvalidOperationException("new error");
+
+		// Act
+		var ensuredResult = await result.EnsureAsync(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				return true;
+			},
+			newError);
+
+		// Assert
+		Assert.IsFalse(ensuredResult.IsSuccess);
+		Assert.AreSame(originalError, ensuredResult.Error);
+	}
+
+	[TestMethod]
+	public async Task EnsureAsync_WithAsyncPredicate_DirectException_WhenPredicateThrows_ReturnsFailureWithException() {
+		// Arrange
+		var result = Result<int>.Success(42);
+		var predicateException = new InvalidOperationException("predicate failed");
+		var providedError = new InvalidOperationException("provided error");
+
+		// Act
+		var ensuredResult = await result.EnsureAsync(
+			async x => {
+				await Task.Delay(1, this.TestContext.CancellationToken);
+				throw predicateException;
+			},
+			providedError);
+
+		// Assert
+		Assert.IsFalse(ensuredResult.IsSuccess);
+		Assert.AreSame(predicateException, ensuredResult.Error);
+	}
+
 	#endregion
 
 	public TestContext TestContext { get; set; }
