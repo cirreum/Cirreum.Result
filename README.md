@@ -7,7 +7,7 @@
 ## Overview
 
 A lightweight, allocation‑free, struct‑based `Result` and `Optional` monad library designed for high‑performance .NET applications.
-Provides a complete toolkit for functional, exception‑free control flow with **full async support**, **validation**, **inspection**, and **monadic composition**.
+Provides a complete toolkit for functional, exception‑free control flow with **full async support**, **validation**, **inspection**, **monadic composition**, and **pagination result types**.
 
 ---
 
@@ -16,6 +16,7 @@ Provides a complete toolkit for functional, exception‑free control flow with *
 - **Struct-based**: No heap allocations on the success path.
 - **Unified Success/Failure Model** using `Result` and `Result<T>`.
 - **Optional Values** with `Optional<T>` for explicit presence/absence modeling.
+- **Pagination Results** with `SliceResult<T>`, `CursorResult<T>`, and `PagedResult<T>` for consistent data access patterns.
 - **Full async support**
   - `ValueTask` + `Task`
   - Async variants of `Map`, `Then`, `Ensure`, `Inspect`, failure handlers, etc.
@@ -32,7 +33,6 @@ Provides a complete toolkit for functional, exception‑free control flow with *
 ---
 
 ## 📦 Installation
-
 ```bash
 dotnet add package Cirreum.Result
 ```
@@ -53,7 +53,6 @@ Result is built for modern, high-performance .NET, with first-class support for:
 ## 🚀 Quick Start
 
 ### Basic Success / Failure
-
 ```csharp
 Result SaveUser(User user)
 {
@@ -75,7 +74,6 @@ Result<User> CreateUser(string name)
 ---
 
 ## 🔗 Chaining With `Then` and `Map`
-
 ```csharp
 var result =
     CreateUser("Alice")
@@ -88,7 +86,6 @@ var result =
 ## 🏭 Static Factory Methods
 
 The non-generic `Result` class provides convenient factory methods:
-
 ```csharp
 // Create a successful Result<T>
 var success = Result.From(42);  // Result<int>
@@ -116,7 +113,6 @@ var result3 = Result.FromOptional(optional, () => new NotFoundException($"User {
 Use `Optional<T>` when a value may be absent without implying an error:
 
 ### Creating Optionals
-
 ```csharp
 // When you know the value is not null
 var name = Optional<string>.For("John");
@@ -130,7 +126,6 @@ var empty = Optional<int>.Empty;
 ```
 
 ### Using Optionals
-
 ```csharp
 Optional<User> FindUser(int id)
 {
@@ -169,12 +164,113 @@ var result2 = Result.FromOptional(FindUser(id), new NotFoundException("User not 
 
 ---
 
+## 📄 Pagination Results
+
+Three result types provide consistent contracts for paginated data across any persistence implementation (SQL, NoSQL, APIs, etc.):
+
+### SliceResult<T>
+
+The simplest pagination type—just items and a "has more" indicator. Ideal for "load more" buttons or batch processing.
+```csharp
+// Creating a slice
+var slice = new SliceResult<Order>(orders, hasMore: true);
+
+// Empty slice
+var empty = SliceResult<Order>.Empty;
+
+// Transform items while preserving metadata
+var dtos = slice.Map(order => new OrderDto(order));
+
+// Check state
+if (slice.IsEmpty) { /* handle empty */ }
+if (slice.HasMore) { /* show "Load More" button */ }
+```
+
+### CursorResult<T>
+
+Cursor-based (keyset) pagination for stable results across data changes. Ideal for infinite scroll, real-time data, and large datasets.
+```csharp
+// Creating a cursor result
+var result = new CursorResult<Order>(orders, nextCursor: "abc123", hasNextPage: true) {
+    PreviousCursor = "xyz789",
+    TotalCount = 1000  // Optional
+};
+
+// Empty result
+var empty = CursorResult<Order>.Empty;
+
+// Transform items
+var dtos = result.Map(order => new OrderDto(order));
+
+// Navigation
+if (result.HasNextPage) { /* use result.NextCursor */ }
+if (result.HasPreviousPage) { /* use result.PreviousCursor */ }
+```
+
+### PagedResult<T>
+
+Offset-based pagination with full metadata. Ideal for traditional paged UIs with page numbers.
+```csharp
+// Creating a paged result
+var result = new PagedResult<Order>(orders, totalCount: 100, pageSize: 25, pageNumber: 1);
+
+// Empty result with custom page size
+var empty = PagedResult<Order>.Empty(pageSize: 50);
+
+// Transform items
+var dtos = result.Map(order => new OrderDto(order));
+
+// Navigation and metadata
+Console.WriteLine($"Page {result.PageNumber} of {result.TotalPages}");
+Console.WriteLine($"Showing {result.Count} of {result.TotalCount} items");
+if (result.HasNextPage) { /* show next button */ }
+if (result.HasPreviousPage) { /* show previous button */ }
+```
+
+### When to Use Each Pagination Type
+
+| Use Case | Type | Why |
+| -------- | ---- | --- |
+| "Load more" button | `SliceResult<T>` | Simple, no count query needed |
+| Infinite scroll | `CursorResult<T>` | Stable with data changes |
+| Large datasets | `CursorResult<T>` | Consistent performance at any depth |
+| Real-time data | `CursorResult<T>` | No shifting results |
+| Traditional paged UI | `PagedResult<T>` | Users expect page numbers |
+| Small datasets with page jumps | `PagedResult<T>` | Random page access needed |
+| Batch processing | `SliceResult<T>` | Minimal overhead |
+
+### Transforming Results Across Layers
+
+All pagination types support `Map()` for clean DTO projections:
+```csharp
+// Repository returns domain entities
+public async Task<PagedResult<Order>> GetOrdersAsync(int page, int pageSize)
+{
+    // ... query implementation
+}
+
+// Service transforms to DTOs
+public async Task<PagedResult<OrderDto>> GetOrderDtosAsync(int page, int pageSize)
+{
+    var orders = await _repository.GetOrdersAsync(page, pageSize);
+    return orders.Map(order => new OrderDto(order));
+}
+
+// Controller returns the result directly
+[HttpGet]
+public async Task<PagedResult<OrderDto>> GetOrders(int page = 1, int pageSize = 25)
+{
+    return await _orderService.GetOrderDtosAsync(page, pageSize);
+}
+```
+
+---
+
 ## ✅ Validation With `Ensure`
 
 The `Ensure` method provides a fluent way to add validation to your `Result<T>` pipeline. If the predicate returns false, the success result is converted to a failure.
 
 ### Synchronous Ensure
-
 ```csharp
 // With error message (creates InvalidOperationException)
 var result = GetOrder(id)
@@ -196,7 +292,6 @@ var result = GetOrder(id)
 ```
 
 ### Async Ensure
-
 ```csharp
 // Async predicate with error factory
 var result = await GetOrderAsync(id)
@@ -218,7 +313,6 @@ var result = await GetOrderAsync(id)
 ---
 
 ## 👀 Side‑Effects With `Inspect`
-
 ```csharp
 result
     .Inspect(r => logger.LogInformation("Result: {State}", r.IsSuccess ? "OK" : "FAIL"));
@@ -229,7 +323,6 @@ result
 ## ⚡ Async Support (`ValueTask` + `Task`)
 
 Every operation has async variants:
-
 ```csharp
 var result =
     await GetUserAsync(id)
@@ -238,7 +331,6 @@ var result =
 ```
 
 Or with async lambdas:
-
 ```csharp
 await SaveAsync(entity)
     .OnSuccessTryAsync(async () => await NotifyAsync(entity));
@@ -247,7 +339,6 @@ await SaveAsync(entity)
 ---
 
 ## 🧩 Pattern Matching
-
 ```csharp
 var message = result.Match(
     onSuccess: () => "OK",
@@ -293,6 +384,27 @@ All of the above, plus:
 
 - `From<T>(T?)` - null-safe factory method
 
+### `SliceResult<T>`
+
+- `Items`, `HasMore`, `Count`, `IsEmpty`
+- `Empty` - static property for empty slice
+- `Map<TResult>(Func<T, TResult>)` - transform items preserving metadata
+
+### `CursorResult<T>`
+
+- `Items`, `NextCursor`, `HasNextPage`, `Count`, `IsEmpty`
+- `PreviousCursor`, `HasPreviousPage` - bidirectional navigation
+- `TotalCount` - optional total count
+- `Empty` - static property for empty result
+- `Map<TResult>(Func<T, TResult>)` - transform items preserving metadata
+
+### `PagedResult<T>`
+
+- `Items`, `TotalCount`, `PageSize`, `PageNumber`, `Count`, `IsEmpty`
+- `TotalPages`, `HasNextPage`, `HasPreviousPage` - computed properties
+- `Empty(int pageSize = 25)` - static factory for empty result
+- `Map<TResult>(Func<T, TResult>)` - transform items preserving metadata
+
 ### Async Extensions
 (From `ResultAsyncExtensions`)
 Supports async versions of:
@@ -312,7 +424,6 @@ All support both `ValueTask` and `Task`.
 ---
 
 ## 🧪 Example: End‑to‑End Pipeline
-
 ```csharp
 var result =
     await Validate(request)
@@ -328,7 +439,6 @@ No exceptions. No branches. Pure railway flow.
 ## 📚 Real-World Examples
 
 ### User Registration with Validation
-
 ```csharp
 public async Task<Result<User>> RegisterUserAsync(RegistrationRequest request)
 {
@@ -348,7 +458,6 @@ public async Task<Result<User>> RegisterUserAsync(RegistrationRequest request)
 ```
 
 ### Order Processing with Stock Validation
-
 ```csharp
 public async Task<Result<Order>> ProcessOrderAsync(OrderRequest request)
 {
@@ -373,7 +482,6 @@ public async Task<Result<Order>> ProcessOrderAsync(OrderRequest request)
 ```
 
 ### API Response Handling with Optional
-
 ```csharp
 public async Task<Result<UserProfile>> GetUserProfileAsync(int userId)
 {
@@ -401,6 +509,41 @@ public async Task<Result<Product>> GetProductAsync(string sku)
         .Ensure(p => p.IsAvailable, "Product is not available")
         .Ensure(p => p.Stock > 0, p => new OutOfStockException($"Product {p.Name} is out of stock"))
         .Map(p => ApplyCurrentPricing(p));
+}
+```
+
+### Paginated API with DTO Transformation
+```csharp
+public async Task<PagedResult<OrderSummaryDto>> GetOrdersAsync(
+    Guid customerId,
+    int pageNumber = 1,
+    int pageSize = 25)
+{
+    var orders = await _repository.GetOrdersByCustomerAsync(customerId, pageNumber, pageSize);
+    
+    return orders.Map(order => new OrderSummaryDto {
+        Id = order.Id,
+        OrderDate = order.CreatedAt,
+        Total = order.Total,
+        Status = order.Status.ToString(),
+        ItemCount = order.Items.Count
+    });
+}
+
+// Cursor-based for infinite scroll
+public async Task<CursorResult<ActivityDto>> GetActivityFeedAsync(
+    Guid userId,
+    string? cursor = null,
+    int pageSize = 50)
+{
+    var activities = await _repository.GetActivitiesAsync(userId, cursor, pageSize);
+    
+    return activities.Map(activity => new ActivityDto {
+        Id = activity.Id,
+        Type = activity.Type,
+        Description = activity.Description,
+        Timestamp = activity.CreatedAt
+    });
 }
 ```
 
@@ -460,6 +603,21 @@ var result = await ProcessSync()
 .Ensure(u => u.Age >= 18, new ValidationException("User is underage"))
 ```
 
+### 6. Choose the Right Pagination Type
+```csharp
+// Good - cursor for real-time feed
+public Task<CursorResult<Post>> GetTimelineAsync(string? cursor);
+
+// Good - paged for admin dashboard
+public Task<PagedResult<User>> GetUsersAsync(int page, int pageSize);
+
+// Good - slice for "show more" preview
+public Task<SliceResult<Comment>> GetRecentCommentsAsync(int limit);
+
+// Avoid - offset pagination for large real-time data
+public Task<PagedResult<Post>> GetTimelineAsync(int page); // Results shift as new posts arrive
+```
+
 ---
 
 ## 🛠️ Why Struct‑Based?
@@ -487,6 +645,7 @@ Pull requests are welcome! If you have ideas for improvements—performance twea
 
 - Core interfaces: `IResult`, `IResult<T>`
 - Implementations: `Result`, `Result<T>`, `Optional<T>`
+- Pagination: `SliceResult<T>`, `CursorResult<T>`, `PagedResult<T>`
 - Async pipeline operators: `ResultAsyncExtensions`
 - Monadic composition, validation, and inspection APIs
 - Designed to support any .NET hosting model (Server, WASM, Azure Functions)
