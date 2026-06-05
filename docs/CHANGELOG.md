@@ -12,6 +12,8 @@ guides linked at the bottom of each entry.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-06-05
+
 ### Added
 
 - **System.Text.Json round-trip support** for `Result`, `Result<T>`, and `Optional<T>` via a built-in `[JsonConverter]` — no registration required; it applies under any `JsonSerializerOptions`. A success serializes as `{ "isSuccess": true, "value": <T> }` and a failure as `{ "isSuccess": false, "error": { "type": "...", "message": "..." } }`. `Optional<T>` serializes transparently — a present value writes the bare value, an empty optional writes `null`.
