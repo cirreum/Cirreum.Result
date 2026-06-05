@@ -10,7 +10,7 @@
 
 	<!-- InternalsVisibleTo: Local Development Only -->
 	<ItemGroup Label="InternalsVisibleTo" Condition="'$(IsLocalBuild)' == 'true'">
-		<InternalsVisibleTo Include="Cirreum.ResultMondad.Tests" />
+		<InternalsVisibleTo Include="Cirreum.ResultMonad.Tests" />
 	</ItemGroup>
 	
 

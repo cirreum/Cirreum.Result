@@ -1,29 +1,23 @@
-﻿namespace Cirreum;
+namespace Cirreum;
+
+using System.Text.Json.Serialization;
 
 /// <summary>
 /// Represents a slice of results with an indicator for whether more items exist.
 /// </summary>
-/// <remarks>
-/// <para>
-/// Use this when you need a simple "load more" pattern without full pagination metadata.
-/// Typically implemented by fetching N+1 items and checking if more exist.
-/// </para>
-/// <para>
-/// This is ideal for scenarios where you don't need cursor stability or page numbers,
-/// such as loading initial data with a "Show More" button, or batch processing.
-/// </para>
-/// <para>
-/// For stable pagination across requests (e.g., infinite scroll with inserts/deletes),
-/// consider <see cref="CursorResult{T}"/>. For full pagination metadata with
-/// page numbers and total counts, consider <see cref="PagedResult{T}"/>.
-/// </para>
-/// </remarks>
-/// <typeparam name="T">The type of items in the result set.</typeparam>
-/// <param name="Items">The items for the current slice.</param>
-/// <param name="HasMore">A value indicating whether additional items exist beyond this slice.</param>
-public sealed record SliceResult<T>(
-	IReadOnlyList<T> Items,
-	bool HasMore) {
+public sealed record SliceResult<T> {
+
+	/// <summary>
+	/// Gets the items for the current slice.
+	/// </summary>
+	/// <param name="items">The items for the current slice.</param>
+	/// <param name="hasMore">A value indicating whether additional items exist beyond this slice.</param>
+	public SliceResult(IReadOnlyList<T> items, bool hasMore) {
+		ArgumentNullException.ThrowIfNull(items, nameof(items));
+
+		this.Items = [.. items];
+		this.HasMore = hasMore;
+	}
 
 	/// <summary>
 	/// Gets an empty slice with no additional items.
@@ -31,21 +25,34 @@ public sealed record SliceResult<T>(
 	public static SliceResult<T> Empty => new([], false);
 
 	/// <summary>
+	/// Gets the items for the current slice.
+	/// </summary>
+	public IReadOnlyList<T> Items { get; }
+
+	/// <summary>
+	/// Gets a value indicating whether additional items exist beyond this slice.
+	/// </summary>
+	public bool HasMore { get; }
+
+	/// <summary>
 	/// Gets the number of items contained in the current slice.
 	/// </summary>
+	[JsonIgnore]
 	public int Count => this.Items.Count;
 
 	/// <summary>
 	/// Gets a value indicating whether the slice contains no items.
 	/// </summary>
+	[JsonIgnore]
 	public bool IsEmpty => this.Items.Count == 0;
 
 	/// <summary>
 	/// Projects each item in the slice to a new form while preserving pagination metadata.
 	/// </summary>
-	/// <typeparam name="TResult">The type of items in the resulting slice.</typeparam>
-	/// <param name="selector">A transform function to apply to each item.</param>
-	/// <returns>A new <see cref="SliceResult{TResult}"/> containing the transformed items.</returns>
-	public SliceResult<TResult> Map<TResult>(Func<T, TResult> selector) =>
-		new([.. this.Items.Select(selector)], this.HasMore);
+	public SliceResult<TResult> Map<TResult>(Func<T, TResult> selector) {
+		ArgumentNullException.ThrowIfNull(selector);
+
+		return new([.. this.Items.Select(selector)], this.HasMore);
+	}
+
 }

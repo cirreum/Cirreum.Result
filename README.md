@@ -29,6 +29,7 @@ Provides a complete toolkit for functional, exception‑free control flow with *
   `Map`, `Then`, `Match`, `Switch`, `TryGetValue`, `TryGetError`, and more.
 - **Ergonomic extension methods** for async workflows.
 - **Zero exceptions for control flow**—exceptions are captured as failures.
+- **System.Text.Json‑ready**: `Result`, `Result<T>`, and `Optional<T>` round‑trip out of the box (no registration); Native‑AOT‑friendly via source generation.
 
 ---
 
@@ -347,6 +348,60 @@ var message = result.Match(
 
 ---
 
+## 🧬 JSON Serialization
+
+`Result`, `Result<T>`, and `Optional<T>` are **System.Text.Json round‑trippable out of the box** — each carries a built‑in `[JsonConverter]`, so they serialize correctly under any `JsonSerializerOptions` with no registration. This matters anywhere a result crosses a boundary: distributed caches, message buses, and HTTP payloads.
+
+```csharp
+var json = JsonSerializer.Serialize(Result<int>.Success(5));
+// {"isSuccess":true,"value":5}
+
+var back = JsonSerializer.Deserialize<Result<int>>(json);
+// back.IsSuccess == true, back.Value == 5
+```
+
+`Optional<T>` serializes transparently — a present value writes the bare value, an empty optional writes `null`:
+
+```csharp
+JsonSerializer.Serialize(Optional<int>.For(5));   // 5
+JsonSerializer.Serialize(Optional<int>.Empty);     // null
+```
+
+### Failures and the error surrogate
+
+Exceptions are not serializable in modern .NET — type identity, stack trace, and custom state cannot be reconstructed. A **failure** therefore round‑trips lossily: the deserialized `Error` is a `SurrogateResultException` that preserves the original exception's **full type name** (`OriginalTypeFullName`) and **message** only.
+
+This means `Error is NotFoundException` (or a `catch` / pattern‑match on the concrete type) will **not** match after a deserialization round‑trip. To branch on the failure type in a way that works identically for live *and* deserialized errors, use `HasError`:
+
+```csharp
+if (result.HasError<NotFoundException>()) { /* ... */ }
+
+// or, for runtime-driven checks:
+if (result.HasError(typeof(NotFoundException))) { /* ... */ }
+```
+
+`HasError` matches a live error by runtime assignability, and a surrogate by exact original type name. (A surrogate matches only the exact original type, not its base types — base‑type assignability is lost across serialization.)
+
+The type‑agnostic surface — `IsSuccess`, `IsFailure`, `Value`, `Match`, `Switch`, and logging `Error.Message` — is unaffected by the surrogate and behaves identically before and after serialization.
+
+### Native AOT
+
+The `Result` types are safe to use in a Native‑AOT application:
+
+- **Using `Result` / `Result<T>` / `Optional<T>` as monads is fully AOT‑compatible** — no reflection, no warnings. Referencing this package introduces no trim/AOT warnings on its own.
+- **Serializing via reflection** (`JsonSerializer.Serialize(result)` with no `JsonTypeInfo`) is *not* AOT‑safe — that is System.Text.Json's intrinsic limitation, not specific to this library. The trim/AOT analyzers flag it at *your* call site, and it throws at runtime under AOT.
+- **Serializing via source generation works under AOT.** Register **both** the `Result<T>` and its inner `T` in your `JsonSerializerContext` — the converter (de)serializes the inner value through the resolver:
+
+```csharp
+[JsonSerializable(typeof(Result<Order>))]
+[JsonSerializable(typeof(Order))]            // the inner T must be registered too
+internal partial class AppJsonContext : JsonSerializerContext;
+
+var json = JsonSerializer.Serialize(result, AppJsonContext.Default.ResultOrder);
+```
+
+---
+
 ## 🏗️ API Overview
 
 ### `Result` (non-generic)
@@ -404,6 +459,11 @@ All of the above, plus:
 - `TotalPages`, `HasNextPage`, `HasPreviousPage` - computed properties
 - `Empty(int pageSize = 25)` - static factory for empty result
 - `Map<TResult>(Func<T, TResult>)` - transform items preserving metadata
+
+### Serialization helpers
+
+- `HasError<TException>()` / `HasError(Type)` — serialization‑safe failure‑type check (matches live errors by assignability, surrogate errors by original type name)
+- `SurrogateResultException` — the carrier a deserialized failure's `Error` becomes (`OriginalTypeFullName`, `Message`)
 
 ### Async Extensions
 (From `ResultAsyncExtensions`)

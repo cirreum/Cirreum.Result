@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<!--
+		Diagnostic probe (NOT shipped, NOT a unit test). Demonstrates how an assembly that opts into Native AOT
+		is affected by referencing Cirreum.Result and using Result / Result<T>. It lives under tests/ so the
+		release tooling (which excludes the tests folder) skips it, and it is not in the test .slnx, so the test
+		runner ignores it. The inherited tests/ runsettings is harmless for a non-test executable.
+
+		Build it to see the trim/AOT analyzer warnings (PublishAot=true turns the analyzers on at build time):
+			dotnet build tests/Cirreum.Result.AotProbe
+		Publish + run it to see the runtime behavior under a real Native-AOT image (needs the C++ toolchain):
+			dotnet publish tests/Cirreum.Result.AotProbe -r win-x64 -c Release
+	-->
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<LangVersion>latest</LangVersion>
+		<PublishAot>true</PublishAot>
+		<InvariantGlobalization>true</InvariantGlobalization>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\Cirreum.Result\Cirreum.Result.csproj" />
+	</ItemGroup>
+
+</Project>

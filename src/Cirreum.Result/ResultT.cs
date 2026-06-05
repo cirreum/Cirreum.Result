@@ -1,7 +1,9 @@
 ﻿namespace Cirreum;
 
+using Cirreum.Serialization;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 /// <summary>
 /// Represents the outcome of an operation, encapsulating either a successful result with a value or a failure with an
@@ -12,6 +14,7 @@ using System.Diagnostics.CodeAnalysis;
 /// inspect the outcome, retrieve the value or error, and compose further operations in a fluent manner. This type is
 /// thread-safe for read-only usage and is commonly used in functional and error-handling scenarios.</remarks>
 /// <typeparam name="T">The type of the value returned if the operation is successful.</typeparam>
+[JsonConverter(typeof(ResultJsonConverterFactory))]
 public readonly struct Result<T> : IResult<T>, IEquatable<Result<T>> {
 
 	/// <summary>

@@ -1,7 +1,9 @@
 namespace Cirreum;
 
+using Cirreum.Serialization;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 /// <summary>
 /// Represents an optional value that may or may not be present.
@@ -14,6 +16,7 @@ using System.Diagnostics.CodeAnalysis;
 /// domain modeling.
 /// </remarks>
 /// <typeparam name="T">The type of the value when present.</typeparam>
+[JsonConverter(typeof(OptionalJsonConverterFactory))]
 public readonly struct Optional<T> : IEquatable<Optional<T>> {
 
 	private readonly bool _hasValue;

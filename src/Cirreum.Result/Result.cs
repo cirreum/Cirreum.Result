@@ -1,11 +1,14 @@
 ﻿namespace Cirreum;
 
+using Cirreum.Serialization;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 
 /// <summary>
 /// Represents the result of an operation without a typed value.
 /// </summary>
+[JsonConverter(typeof(ResultJsonConverterFactory))]
 public readonly struct Result : IResult, IEquatable<Result> {
 
 	/// <summary>
