@@ -1,4 +1,4 @@
-﻿<Project Sdk="MSTest.Sdk">
+<Project Sdk="MSTest.Sdk">
 	<!--
 Alternatively, if you don't want to use the `global.json` file for versions, you can specify the version of the MSTest.Sdk package here.
 <Project Sdk="MSTest.Sdk/<version>">
@@ -13,39 +13,12 @@ Alternatively, if you don't want to use the `global.json` file for versions, you
 
 	<!-- By default, MSTest Sdk uses MSTest runner -->
 	<ItemGroup>
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.3" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.3" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.13" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.13" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\Cirreum.Result\Cirreum.Result.csproj" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <PackageReference Update="Microsoft.NET.Test.Sdk" Version="18.3.0" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <PackageReference Update="Microsoft.Testing.Extensions.CodeCoverage" Version="18.5.2" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <PackageReference Update="Microsoft.Testing.Extensions.TrxReport" Version="2.1.0" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <PackageReference Update="MSTest.Analyzers" Version="4.1.0">
-	    <PrivateAssets>all</PrivateAssets>
-	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-	  </PackageReference>
-	</ItemGroup>
-
-	<ItemGroup>
-	  <PackageReference Update="MSTest.TestAdapter" Version="4.1.0" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <PackageReference Update="MSTest.TestFramework" Version="4.1.0" />
 	</ItemGroup>
 
 </Project>
